@@ -44,8 +44,12 @@ import fi.dy.masa.servux.util.position.PositionUtils;
 
 public class LitematicsDataProvider extends DataProviderBase
 {
-    public static final LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
-    protected final static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER = ServuxLitematicaHandler.getInstance();
+    public static void setINSTANCE(LitematicsDataProvider INSTANCE) {
+        LitematicsDataProvider.INSTANCE = INSTANCE;
+    }
+
+    public static LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
+    protected static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER = ServuxLitematicaHandler.getInstance();
     protected final NbtCompound metadata = new NbtCompound();
     protected ServuxIntSetting permissionLevel = new ServuxIntSetting(this,
             "permission_level",
@@ -62,7 +66,7 @@ public class LitematicsDataProvider extends DataProviderBase
     private final SchematicBufferManager bufferManager = new SchematicBufferManager();
     private final Path transmitDir;
 
-    protected LitematicsDataProvider()
+    public LitematicsDataProvider()
     {
         super("litematic_data",
                 ServuxLitematicaHandler.CHANNEL_ID,
@@ -70,6 +74,7 @@ public class LitematicsDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.litematic_data",
                 "Litematics Data provider.");
 
+        HANDLER = ServuxLitematicaHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());

@@ -20,16 +20,14 @@ import fi.dy.masa.servux.dataproviders.StructureDataProvider;
 import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxStructuresHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE = new ServuxStructuresHandler<>() {
-        @Override
-        public void receive(ServuxStructuresPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxStructuresHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    private static ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE;
+
+    public static void setINSTANCE(ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE) {
+        ServuxStructuresHandler.INSTANCE = INSTANCE;
+    }
+
     public static ServuxStructuresHandler<ServuxStructuresPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "structures");

@@ -21,16 +21,14 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxEntitiesHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>() {
-        @Override
-        public void receive(ServuxEntitiesPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxEntitiesHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE;
+
+    public static void setINSTANCE(ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE) {
+        ServuxEntitiesHandler.INSTANCE = INSTANCE;
+    }
+
     public static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "entity_data");

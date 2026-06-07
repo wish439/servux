@@ -16,6 +16,7 @@ public class Servux implements ModInitializer
     @Override
     public void onInitialize()
     {
+        EventRegister.registerEvents();
         ServerInitHandler.getInstance().registerServerInitHandler(new ServuxInitHandler());
         CommandProvider.getInstance().registerCommand(new ServuxCommand());
         // Command Manager gets called before the Init Manager onServerInit()

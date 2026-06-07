@@ -20,7 +20,11 @@ import fi.dy.masa.servux.util.i18nLang;
 
 public class ServuxConfigProvider extends DataProviderBase
 {
-    public static final ServuxConfigProvider INSTANCE = new ServuxConfigProvider();
+    public static void setINSTANCE(ServuxConfigProvider INSTANCE) {
+        ServuxConfigProvider.INSTANCE = INSTANCE;
+    }
+
+    public static ServuxConfigProvider INSTANCE;
 
     private final ServuxIntSetting basePermissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
     private final ServuxIntSetting adminPermissionLevel = new ServuxIntSetting(this, "permission_level_admin", 3, 4, 0);
@@ -56,7 +60,7 @@ public class ServuxConfigProvider extends DataProviderBase
     private final ServuxBoolSetting debugLog = new ServuxBoolSetting(this, "debug_log", Text.of("Debug Log"), Text.of("Enable debug logging"), false);
     private final List<IServuxSetting<?>> settings = List.of(this.basePermissionLevel, this.adminPermissionLevel, this.easyPlacePermissionLevel, this.defaultLanguage, this.debugLog);
 
-    protected ServuxConfigProvider()
+    public ServuxConfigProvider()
     {
         super("servux_main",
                 Identifier.of("servux", "main"),

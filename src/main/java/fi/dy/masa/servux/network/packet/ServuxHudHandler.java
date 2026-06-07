@@ -21,16 +21,20 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxHudHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>() {
+    private static ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>() {
         @Override
         public void receive(ServuxHudPacket.Payload payload, ServerPlayNetworking.Context context)
         {
             ServuxHudHandler.INSTANCE.receivePlayPayload(payload, context);
         }
     };
+
+    public static void setINSTANCE(ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE) {
+        ServuxHudHandler.INSTANCE = INSTANCE;
+    }
+
     public static ServuxHudHandler<ServuxHudPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "hud_metadata");

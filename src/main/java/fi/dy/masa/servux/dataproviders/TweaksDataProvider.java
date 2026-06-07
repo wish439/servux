@@ -34,8 +34,12 @@ import net.minecraft.util.profiler.Profiler;
 
 public class TweaksDataProvider extends DataProviderBase
 {
-    public static final TweaksDataProvider INSTANCE = new TweaksDataProvider();
-	private final static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER = ServuxTweaksHandler.getInstance();
+    public static void setINSTANCE(TweaksDataProvider INSTANCE) {
+        TweaksDataProvider.INSTANCE = INSTANCE;
+    }
+
+    public static TweaksDataProvider INSTANCE;
+	private static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER;
     private final NbtCompound metadata = new NbtCompound();
     private final BoolCallbacks boolCallback = new BoolCallbacks();
     private final IntCallbacks intCallback = new IntCallbacks();
@@ -55,7 +59,7 @@ public class TweaksDataProvider extends DataProviderBase
     private final List<UUID> invalidPlayers = new ArrayList<>();
     private boolean configDirty = false;
 
-    protected TweaksDataProvider()
+    public TweaksDataProvider()
     {
         super("tweaks_data",
                 ServuxTweaksHandler.CHANNEL_ID,
@@ -63,6 +67,7 @@ public class TweaksDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.tweaks_data",
                 "Tweaks Data provider for Client Side mods.");
 
+        HANDLER = ServuxTweaksHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());

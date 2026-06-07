@@ -40,8 +40,12 @@ import fi.dy.masa.servux.util.Timeout;
 
 public class StructureDataProvider extends DataProviderBase
 {
-    public static final StructureDataProvider INSTANCE = new StructureDataProvider();
-    protected final static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER = ServuxStructuresHandler.getInstance();
+    public static void setINSTANCE(StructureDataProvider INSTANCE) {
+        StructureDataProvider.INSTANCE = INSTANCE;
+    }
+
+    public static StructureDataProvider INSTANCE;
+    protected static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER;
     protected final Map<UUID, PlayerDimensionPosition> registeredPlayers = new HashMap<>();
     protected final Map<UUID, Map<ChunkPos, Timeout>> timeouts = new HashMap<>();
     protected final NbtCompound metadata = new NbtCompound();
@@ -56,7 +60,7 @@ public class StructureDataProvider extends DataProviderBase
 
     private List<IServuxSetting<?>> settings = List.of(this.permissionLevel, this.structureBlacklistEnabled, this.structureWhitelistEnabled, this.structureBlacklist, this.structureWhitelist, this.updateInterval, this.timeout);
 
-    protected StructureDataProvider()
+    public StructureDataProvider()
     {
         super("structure_bounding_boxes",
                 ServuxStructuresHandler.CHANNEL_ID,
@@ -64,6 +68,7 @@ public class StructureDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.structure_bounding_boxes",
                 "Structure Bounding Boxes data for structures such as Witch Huts, Ocean Monuments, Nether Fortresses etc.");
 
+        HANDLER = ServuxStructuresHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());

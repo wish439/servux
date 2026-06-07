@@ -21,17 +21,16 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxDebugHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxDebugHandler<ServuxDebugPacket.Payload> INSTANCE = new ServuxDebugHandler<>() {
-        @Override
-        public void receive(ServuxDebugPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxDebugHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
-    public static ServuxDebugHandler<ServuxDebugPacket.Payload> getInstance() { return INSTANCE; }
+    public static void setINSTANCE(ServuxDebugHandler<ServuxDebugPacket.Payload> INSTANCE) {
+        ServuxDebugHandler.INSTANCE = INSTANCE;
+    }
+
+    private static ServuxDebugHandler<ServuxDebugPacket.Payload> INSTANCE;
+    public static ServuxDebugHandler<ServuxDebugPacket.Payload> getInstance() {
+        return INSTANCE;
+    }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "debug_service");
 

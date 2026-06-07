@@ -19,8 +19,7 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
-	include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
-	include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Lucko Permissions API
 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
@@ -35,6 +34,12 @@ base {
 	if (version.endsWith('-dev')) {
 		version += "." + new Date().format('yyyyMMdd.HHmmss')
 	}
+}
+
+tasks.register('generatePatch', Exec) {
+	description = 'Generate .patch file from the latest git commit'
+	workingDir = project.projectDir
+	commandLine 'git', 'format-patch', '-1', 'HEAD', '-o', 'patches'
 }
 
 loom {

@@ -27,16 +27,14 @@ import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 import fi.dy.masa.servux.schematic.LitematicaSchematic;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxLitematicaHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE = new ServuxLitematicaHandler<>() {
-        @Override
-        public void receive(ServuxLitematicaPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxLitematicaHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    private static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE;
+
+    public static void setINSTANCE(ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE) {
+        ServuxLitematicaHandler.INSTANCE = INSTANCE;
+    }
+
     public static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "litematics");

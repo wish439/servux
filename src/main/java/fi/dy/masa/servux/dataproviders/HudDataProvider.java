@@ -32,8 +32,12 @@ import fi.dy.masa.servux.util.StringUtils;
 
 public class HudDataProvider extends DataProviderBase
 {
-    public static final HudDataProvider INSTANCE = new HudDataProvider();
-    protected final static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER = ServuxHudHandler.getInstance();
+    public static void setINSTANCE(HudDataProvider INSTANCE) {
+        HudDataProvider.INSTANCE = INSTANCE;
+    }
+
+    public static HudDataProvider INSTANCE;
+    protected static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER;
     protected final NbtCompound metadata = new NbtCompound();
     protected ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
     protected ServuxIntSetting updateInterval = new ServuxIntSetting(this, "update_interval", 40, 300, 20);
@@ -69,7 +73,7 @@ public class HudDataProvider extends DataProviderBase
     private final HashMap<DataLogger, DataLoggerBase<?>> LOGGERS = new HashMap<>();
     private final HashMap<DataLogger, NbtElement> DATA = new HashMap<>();
 
-    protected HudDataProvider()
+    public HudDataProvider()
     {
         super("hud_data",
               ServuxHudHandler.CHANNEL_ID,
@@ -77,6 +81,7 @@ public class HudDataProvider extends DataProviderBase
               0, Reference.MOD_ID+ ".provider.hud_data",
               "MiniHUD Meta Data provider for various Server-Side information");
 
+        HANDLER = ServuxHudHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());

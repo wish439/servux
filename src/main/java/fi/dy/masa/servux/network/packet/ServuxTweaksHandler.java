@@ -21,16 +21,14 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxTweaksHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxTweaksHandler<ServuxTweaksPacket.Payload> INSTANCE = new ServuxTweaksHandler<>() {
-        @Override
-        public void receive(ServuxTweaksPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxTweaksHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    private static ServuxTweaksHandler<ServuxTweaksPacket.Payload> INSTANCE;
+
+    public static void setINSTANCE(ServuxTweaksHandler<ServuxTweaksPacket.Payload> INSTANCE) {
+        ServuxTweaksHandler.INSTANCE = INSTANCE;
+    }
+
     public static ServuxTweaksHandler<ServuxTweaksPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "tweaks");

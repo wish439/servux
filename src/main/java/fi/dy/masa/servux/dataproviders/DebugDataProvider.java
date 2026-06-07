@@ -56,9 +56,13 @@ import fi.dy.masa.servux.settings.ServuxIntSetting;
 @SuppressWarnings({"unchecked", "deprecation"})
 public class DebugDataProvider extends DataProviderBase
 {
-    public static final DebugDataProvider INSTANCE = new DebugDataProvider();
+    public static void setINSTANCE(DebugDataProvider INSTANCE) {
+        DebugDataProvider.INSTANCE = INSTANCE;
+    }
 
-    protected final static ServuxDebugHandler<ServuxDebugPacket.Payload> HANDLER = ServuxDebugHandler.getInstance();
+    public static DebugDataProvider INSTANCE;
+
+    protected static ServuxDebugHandler<ServuxDebugPacket.Payload> HANDLER;
     protected final HashMap<UUID, NbtCompound> registeredPlayers = new HashMap<>();
     protected final NbtCompound metadata = new NbtCompound();
 
@@ -67,7 +71,7 @@ public class DebugDataProvider extends DataProviderBase
     //private final ServuxBoolSetting enableServerDevelopmentMode = new ServuxBoolSetting(this, "server_development_mode", false);
     private final List<IServuxSetting<?>> settings = List.of(this.basePermissionLevel);
 
-    protected DebugDataProvider()
+    public DebugDataProvider()
     {
         super("debug_data",
               ServuxDebugHandler.CHANNEL_ID,
@@ -75,6 +79,7 @@ public class DebugDataProvider extends DataProviderBase
               2, Reference.MOD_ID + ".provider.debug_data",
               "Vanilla Debug Data provider.");
 
+        HANDLER = ServuxDebugHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());

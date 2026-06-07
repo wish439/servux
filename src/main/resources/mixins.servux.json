@@ -23,7 +23,6 @@
         "network.MixinServerPlayNetworkHandler_QueryNbt",
         "server.IMixinServerTickManager",
         "server.MixinCommandManager",
-        "server.MixinMinecraftDedicatedServer",
         "server.MixinMinecraftServer",
         "server.MixinPlayerManager",
         "world.IMixinWorldTickScheduler",
