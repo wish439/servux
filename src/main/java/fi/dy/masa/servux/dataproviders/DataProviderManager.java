@@ -84,6 +84,7 @@ public class DataProviderManager
             System.out.printf("setProviderEnabled: %s (%s)\n", enabled, provider);
         }
 
+
         if (enabled || wasEnabled != enabled)
         {
             provider.setEnabled(enabled);

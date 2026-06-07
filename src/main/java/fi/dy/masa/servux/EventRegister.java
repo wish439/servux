@@ -7,9 +7,9 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 public class EventRegister {
     public static void registerEvents() {
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             registerHandlers();
+            ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
         });
     }
     private static void registerHandlers() {

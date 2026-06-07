@@ -18,7 +18,6 @@
         "entity.MixinItemEntity",
         "entity.MixinMobEntity",
         "item.MixinBlockItem_EasyPlace",
-        "item.MixinItemStack",
         "network.MixinServerPlayNetworkHandler_EasyPlace",
         "network.MixinServerPlayNetworkHandler_QueryNbt",
         "server.IMixinServerTickManager",
