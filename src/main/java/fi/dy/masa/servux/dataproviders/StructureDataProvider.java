@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
@@ -60,6 +61,8 @@ public class StructureDataProvider extends DataProviderBase
 
     private List<IServuxSetting<?>> settings = List.of(this.permissionLevel, this.structureBlacklistEnabled, this.structureWhitelistEnabled, this.structureBlacklist, this.structureWhitelist, this.updateInterval, this.timeout);
 
+    private final boolean minihudLoaded;
+
     public StructureDataProvider()
     {
         super("structure_bounding_boxes",
@@ -76,6 +79,10 @@ public class StructureDataProvider extends DataProviderBase
         this.metadata.putInt("timeout", timeout.getValue());
 
         this.setTickRate(40);
+
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.minihudLoaded = true;
+        } else minihudLoaded = false;
     }
 
     @Override
@@ -89,11 +96,15 @@ public class StructureDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (this.isRegistered() == false)
-        {
-            HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+        if (!this.minihudLoaded) {
+            if (this.isRegistered() == false)
+            {
+                HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else this.setRegistered(true);
+
+
 
         HANDLER.registerPlayReceiver(ServuxStructuresPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

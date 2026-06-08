@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -52,6 +53,7 @@ public class EntitiesDataProvider extends DataProviderBase
 	);
 
     private final List<UUID> invalidPlayers = new ArrayList<>();
+    private final boolean minihudLoaded;
 
     public EntitiesDataProvider()
     {
@@ -66,6 +68,9 @@ public class EntitiesDataProvider extends DataProviderBase
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.minihudLoaded = true;
+        } else minihudLoaded = false;
     }
 
     @Override
@@ -79,11 +84,13 @@ public class EntitiesDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+        if (!this.minihudLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else this.setRegistered(true);
 
         HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

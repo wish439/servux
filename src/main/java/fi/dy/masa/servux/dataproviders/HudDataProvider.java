@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 
 import com.mojang.serialization.DataResult;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -73,6 +74,8 @@ public class HudDataProvider extends DataProviderBase
     private final HashMap<DataLogger, DataLoggerBase<?>> LOGGERS = new HashMap<>();
     private final HashMap<DataLogger, NbtElement> DATA = new HashMap<>();
 
+    private final boolean minihudLoaded;
+
     public HudDataProvider()
     {
         super("hud_data",
@@ -93,6 +96,9 @@ public class HudDataProvider extends DataProviderBase
         this.metadata.putInt("spawnPosZ", this.getSpawnPos().getZ());
         this.metadata.putInt("spawnChunkRadius", this.getSpawnChunkRadius());
 
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.minihudLoaded = true;
+        } else minihudLoaded = false;
         // Loggers
         this.checkIfLoggersAreInitialized();
     }
@@ -134,11 +140,13 @@ public class HudDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (this.isRegistered() == false)
-        {
-            HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+        if (!this.minihudLoaded) {
+            if (this.isRegistered() == false)
+            {
+                HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else this.setRegistered(true);
 
         HANDLER.registerPlayReceiver(ServuxHudPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

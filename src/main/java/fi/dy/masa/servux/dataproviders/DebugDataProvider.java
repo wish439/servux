@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.entity.Entity;
@@ -71,6 +72,8 @@ public class DebugDataProvider extends DataProviderBase
     //private final ServuxBoolSetting enableServerDevelopmentMode = new ServuxBoolSetting(this, "server_development_mode", false);
     private final List<IServuxSetting<?>> settings = List.of(this.basePermissionLevel);
 
+    private final boolean minihudLoaded;
+
     public DebugDataProvider()
     {
         super("debug_data",
@@ -84,17 +87,23 @@ public class DebugDataProvider extends DataProviderBase
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.minihudLoaded = true;
+        } else minihudLoaded = false;
     }
 
     @Override
     public void registerHandler()
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
-        if (this.isRegistered() == false)
-        {
-            HANDLER.registerPlayPayload(ServuxDebugPacket.Payload.ID, ServuxDebugPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+        if (!this.minihudLoaded) {
+            if (this.isRegistered() == false)
+            {
+                HANDLER.registerPlayPayload(ServuxDebugPacket.Payload.ID, ServuxDebugPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else this.setRegistered(true);
+
         HANDLER.registerPlayReceiver(ServuxDebugPacket.Payload.ID, HANDLER::receivePlayPayload);
     }
 

@@ -7,6 +7,9 @@ repositories {
 	// maven { url = 'https://masa.dy.fi/maven' }
 	maven { url = 'https://maven.fallenbreath.me/releases' }
 	maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
+	maven {
+		url = "https://api.modrinth.com/maven"
+	}
 //	maven { url = 'https://maven.nucleoid.xyz/' }
 	// maven { url = 'https://jitpack.io' }
 }
@@ -16,6 +19,16 @@ dependencies {
 	mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 	implementation "com.google.code.findbugs:jsr305:3.0.2"
+
+	modImplementation "me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}"
+
+	//compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+	modCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	modCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
+	modCompileOnly "maven.modrinth:minihud:${project.minihud_version}"
+	modCompileOnly "maven.modrinth:tweakeroo:${project.tweakeroo_version}"
+
+	include "me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version

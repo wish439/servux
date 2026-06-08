@@ -9,6 +9,7 @@ import fi.dy.masa.servux.settings.ServuxBoolSetting;
 import fi.dy.masa.servux.util.InventoryUtils;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
@@ -59,6 +60,8 @@ public class TweaksDataProvider extends DataProviderBase
     private final List<UUID> invalidPlayers = new ArrayList<>();
     private boolean configDirty = false;
 
+    private final boolean tweakerooLoaded;
+
     public TweaksDataProvider()
     {
         super("tweaks_data",
@@ -75,6 +78,10 @@ public class TweaksDataProvider extends DataProviderBase
 
         this.setTickRate(40);
         this.checkTweaksMetadata();
+
+        if (FabricLoader.getInstance().getModContainer(Reference.TWEAKEROO_MODID).isPresent()) {
+            this.tweakerooLoaded = true;
+        } else tweakerooLoaded = false;
     }
 
     @Override
@@ -88,11 +95,13 @@ public class TweaksDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+        if (!this.tweakerooLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else this.setRegistered(true);
 
         HANDLER.registerPlayReceiver(ServuxTweaksPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

@@ -61,6 +61,7 @@ public abstract class ServuxLitematicaHandler<T extends CustomPayload> implement
     @Override
     public void setPlayRegistered(Identifier channel)
     {
+        System.out.println(channel.toString());
         if (channel.equals(CHANNEL_ID))
         {
             this.payloadRegistered = true;

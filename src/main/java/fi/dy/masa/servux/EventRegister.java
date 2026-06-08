@@ -11,6 +11,8 @@ public class EventRegister {
             registerHandlers();
             ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
         });
+
+
     }
     private static void registerHandlers() {
          ServuxDebugHandler.setINSTANCE(new ServuxDebugHandler<>() {
