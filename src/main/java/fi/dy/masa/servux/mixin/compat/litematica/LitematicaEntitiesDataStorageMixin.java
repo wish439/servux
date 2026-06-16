@@ -26,7 +26,7 @@ public class LitematicaEntitiesDataStorageMixin {
     @Final
     private static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER;
 
-    @WrapOperation(method = "receiveServuxMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/litematica/data/DataManager;hasIntegratedServer()Z"))
+    //@WrapOperation(method = "receiveServuxMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/litematica/data/DataManager;hasIntegratedServer()Z"))
     private boolean hasIntegratedServer(DataManager instance, Operation<Boolean> original) {
         System.out.println("LitematicaEntitiesDataStorageMixin hasIntegratedServer");
         return false;

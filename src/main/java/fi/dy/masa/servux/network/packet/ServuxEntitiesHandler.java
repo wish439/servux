@@ -132,6 +132,8 @@ public abstract class ServuxEntitiesHandler<T extends CustomPayload> implements 
     @Override
     public void receivePlayPayload(T payload, ServerPlayNetworking.Context ctx)
     {
+        System.out.println("Location:");
+        System.out.println(payload.getClass());
         if (payload.getId().id().equals(CHANNEL_ID))
         {
             ServerPlayerEntity player = ctx.player();

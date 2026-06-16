@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 )
 @Mixin(HudDataManager.class)
 public class MiniHudHudDataManagerMixin {
-    @WrapOperation(method = "receiveMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer()Z"))
+    //@WrapOperation(method = "receiveMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer()Z"))
     private boolean hasIntegratedServer(DataStorage instance, Operation<Boolean> original) {
         return false;
     }

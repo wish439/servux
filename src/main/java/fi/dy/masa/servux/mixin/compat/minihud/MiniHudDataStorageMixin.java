@@ -16,10 +16,10 @@ import org.spongepowered.asm.mixin.injection.At;
 )
 @Mixin(DataStorage.class)
 public class MiniHudDataStorageMixin {
-    @WrapOperation(method = "receiveServuxStrucutresMetadata", at = @At(value = "FIELD", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer:Z"))
+    /*@WrapOperation(method = "receiveServuxStrucutresMetadata", at = @At(value = "FIELD", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer:Z"))
     private boolean onReceive(DataStorage instance, Operation<Boolean> original) {
         return false;
-    }
+    }*/
     //@WrapOperation(method = "onGameInit", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/network/ServuxStructuresHandler;registerPlayPayload(Lnet/minecraft/network/packet/CustomPayload$Id;Lnet/minecraft/network/codec/PacketCodec;I)V"))
     private void onGameInit(ServuxStructuresHandler instance, CustomPayload.Id id, PacketCodec packetCodec, int i, Operation<Void> original) {
 

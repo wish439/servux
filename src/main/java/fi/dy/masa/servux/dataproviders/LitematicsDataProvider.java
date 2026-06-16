@@ -46,7 +46,7 @@ import fi.dy.masa.servux.util.position.PositionUtils;
 public class LitematicsDataProvider extends DataProviderBase
 {
     @Setter
-    public static LitematicsDataProvider INSTANCE;
+    public static LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
     protected static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER;
     protected final NbtCompound metadata = new NbtCompound();
     protected ServuxIntSetting permissionLevel = new ServuxIntSetting(this,

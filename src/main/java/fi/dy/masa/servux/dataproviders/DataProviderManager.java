@@ -127,6 +127,7 @@ public class DataProviderManager
     {
         if (provider.isEnabled())
         {
+            System.out.println("Triggered registerHandler" + provider);
             provider.registerHandler();
         }
         else

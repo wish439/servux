@@ -37,7 +37,7 @@ import net.minecraft.util.profiler.Profiler;
 public class TweaksDataProvider extends DataProviderBase
 {
     @Setter
-    public static TweaksDataProvider INSTANCE;
+    public static TweaksDataProvider INSTANCE = new TweaksDataProvider();
 	private static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER;
     private final NbtCompound metadata = new NbtCompound();
     private final BoolCallbacks boolCallback = new BoolCallbacks();

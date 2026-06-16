@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import fi.dy.masa.servux.network.packet.ServuxLitematicaPacket;
 import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.impl.networking.PayloadTypeRegistryImpl;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
@@ -29,7 +32,7 @@ import fi.dy.masa.servux.settings.ServuxIntSetting;
 public class EntitiesDataProvider extends DataProviderBase
 {
     @Setter
-    public static EntitiesDataProvider INSTANCE;
+    public static EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
     private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER;
 	private final NbtCompound metadata = new NbtCompound();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -92,11 +95,11 @@ public class EntitiesDataProvider extends DataProviderBase
                 this.setRegistered(true);
             }
         } else {
-            //HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
+            HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
-        //System.out.println(((PayloadTypeRegistryImpl) PayloadTypeRegistry.playC2S()).get(Identifier.of("servux", "entity_data")));
-        //System.out.println(((PayloadTypeRegistryImpl)PayloadTypeRegistry.playS2C()).get(Identifier.of("servux", "entity_data")));
+        System.out.println(((PayloadTypeRegistryImpl) PayloadTypeRegistry.playC2S()).get(Identifier.of("servux", "entity_data")));
+        System.out.println(((PayloadTypeRegistryImpl)PayloadTypeRegistry.playS2C()).get(Identifier.of("servux", "entity_data")));
 
         HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

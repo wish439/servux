@@ -36,7 +36,7 @@ import fi.dy.masa.servux.util.StringUtils;
 public class HudDataProvider extends DataProviderBase
 {
     @Setter
-    public static HudDataProvider INSTANCE;
+    public static HudDataProvider INSTANCE = new HudDataProvider();
     protected static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER;
     protected final NbtCompound metadata = new NbtCompound();
     protected ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);

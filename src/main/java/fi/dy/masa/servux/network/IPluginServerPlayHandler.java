@@ -67,6 +67,7 @@ public interface IPluginServerPlayHandler<T extends CustomPayload> extends Serve
      */
     default void registerPlayPayload(@Nonnull CustomPayload.Id<T> id, @Nonnull PacketCodec<? super RegistryByteBuf,T> codec, int direction)
     {
+        System.out.println("Registering play payload " + id);
         if (!this.isPlayRegistered(this.getPayloadChannel()))
         {
             try

@@ -18,6 +18,7 @@ public class ServuxInitHandler implements IServerInitHandler
         EntitiesDataProvider.setINSTANCE(new EntitiesDataProvider());
         TweaksDataProvider.setINSTANCE(new TweaksDataProvider());
         DebugDataProvider.setINSTANCE(new DebugDataProvider());
+        System.out.println("registered");
         DataProviderManager.INSTANCE.registerDataProvider(ServuxConfigProvider.INSTANCE);
         DataProviderManager.INSTANCE.registerDataProvider(StructureDataProvider.INSTANCE);
         DataProviderManager.INSTANCE.registerDataProvider(HudDataProvider.INSTANCE);

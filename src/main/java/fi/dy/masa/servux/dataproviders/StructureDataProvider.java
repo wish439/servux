@@ -45,7 +45,7 @@ import fi.dy.masa.servux.util.Timeout;
 public class StructureDataProvider extends DataProviderBase
 {
     @Setter
-    public static StructureDataProvider INSTANCE;
+    public static StructureDataProvider INSTANCE = new StructureDataProvider();
     protected static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER;
     protected final Map<UUID, PlayerDimensionPosition> registeredPlayers = new HashMap<>();
     protected final Map<UUID, Map<ChunkPos, Timeout>> timeouts = new HashMap<>();

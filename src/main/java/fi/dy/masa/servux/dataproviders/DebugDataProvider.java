@@ -59,7 +59,7 @@ import fi.dy.masa.servux.settings.ServuxIntSetting;
 public class DebugDataProvider extends DataProviderBase
 {
     @Setter
-    public static DebugDataProvider INSTANCE;
+    public static DebugDataProvider INSTANCE = new DebugDataProvider();
 
     protected static ServuxDebugHandler<ServuxDebugPacket.Payload> HANDLER;
     protected final HashMap<UUID, NbtCompound> registeredPlayers = new HashMap<>();
