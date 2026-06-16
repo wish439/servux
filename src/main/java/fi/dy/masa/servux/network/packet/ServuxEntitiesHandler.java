@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import io.netty.buffer.Unpooled;
 
+import lombok.Setter;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
@@ -21,16 +22,10 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxEntitiesHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>() {
-        @Override
-        public void receive(ServuxEntitiesPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxEntitiesHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    @Setter
+    private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE;
     public static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "entity_data");

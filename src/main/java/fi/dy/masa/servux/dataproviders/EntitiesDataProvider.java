@@ -3,7 +3,10 @@ package fi.dy.masa.servux.dataproviders;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -25,8 +28,9 @@ import fi.dy.masa.servux.settings.ServuxIntSetting;
 
 public class EntitiesDataProvider extends DataProviderBase
 {
-    public static final EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
-    private final static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER = ServuxEntitiesHandler.getInstance();
+    @Setter
+    public static EntitiesDataProvider INSTANCE;
+    private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER;
 	private final NbtCompound metadata = new NbtCompound();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
 	private final ServuxBoolSetting nbtQueryOverride = new ServuxBoolSetting(this, "nbt_query_override", false);
@@ -49,7 +53,9 @@ public class EntitiesDataProvider extends DataProviderBase
 
     private final List<UUID> invalidPlayers = new ArrayList<>();
 
-    protected EntitiesDataProvider()
+    private boolean isMinihudLoaded;
+
+    public EntitiesDataProvider()
     {
         super("entity_data",
                 ServuxEntitiesHandler.CHANNEL_ID,
@@ -57,10 +63,15 @@ public class EntitiesDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.entity_data",
                 "Entity Data provider for Client Side mods.");
 
+        HANDLER = ServuxEntitiesHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else isMinihudLoaded = false;
     }
 
     @Override
@@ -74,11 +85,18 @@ public class EntitiesDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isMinihudLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            //HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
+        //System.out.println(((PayloadTypeRegistryImpl) PayloadTypeRegistry.playC2S()).get(Identifier.of("servux", "entity_data")));
+        //System.out.println(((PayloadTypeRegistryImpl)PayloadTypeRegistry.playS2C()).get(Identifier.of("servux", "entity_data")));
 
         HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

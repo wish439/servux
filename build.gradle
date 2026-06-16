@@ -9,18 +9,37 @@ repositories {
 	maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
 //	maven { url = 'https://maven.nucleoid.xyz/' }
 	// maven { url = 'https://jitpack.io' }
+	maven {
+		url = "https://api.modrinth.com/maven"
+	}
 }
 
 dependencies {
+
+	//lombok
+	annotationProcessor "org.projectlombok:lombok:1.18.34"
+	compileOnly "org.projectlombok:lombok:1.18.34"
+
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 	implementation "com.google.code.findbugs:jsr305:3.0.2"
 
+	modImplementation "me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}"
+
+	//compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+	modCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	modCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
+	modCompileOnly "maven.modrinth:minihud:${project.minihud_version}"
+	modCompileOnly "maven.modrinth:tweakeroo:${project.tweakeroo_version}"
+
+	include "me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}"
+
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
-	include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
-	include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+	//include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
+	//include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Lucko Permissions API
 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")

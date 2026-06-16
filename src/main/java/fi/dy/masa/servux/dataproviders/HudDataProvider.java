@@ -3,9 +3,12 @@ package fi.dy.masa.servux.dataproviders;
 import java.util.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 
 import com.mojang.serialization.DataResult;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -32,8 +35,9 @@ import fi.dy.masa.servux.util.StringUtils;
 
 public class HudDataProvider extends DataProviderBase
 {
-    public static final HudDataProvider INSTANCE = new HudDataProvider();
-    protected final static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER = ServuxHudHandler.getInstance();
+    @Setter
+    public static HudDataProvider INSTANCE;
+    protected static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER;
     protected final NbtCompound metadata = new NbtCompound();
     protected ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
     protected ServuxIntSetting updateInterval = new ServuxIntSetting(this, "update_interval", 40, 300, 20);
@@ -69,7 +73,9 @@ public class HudDataProvider extends DataProviderBase
     private final HashMap<DataLogger, DataLoggerBase<?>> LOGGERS = new HashMap<>();
     private final HashMap<DataLogger, NbtElement> DATA = new HashMap<>();
 
-    protected HudDataProvider()
+    private boolean isMinihudLoaded;
+
+    public HudDataProvider()
     {
         super("hud_data",
               ServuxHudHandler.CHANNEL_ID,
@@ -88,8 +94,13 @@ public class HudDataProvider extends DataProviderBase
         this.metadata.putInt("spawnPosZ", this.getSpawnPos().getZ());
         this.metadata.putInt("spawnChunkRadius", this.getSpawnChunkRadius());
 
+        HANDLER = ServuxHudHandler.getInstance();
         // Loggers
         this.checkIfLoggersAreInitialized();
+
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else isMinihudLoaded = false;
     }
 
     private List<String> getDefaultLoggers()
@@ -129,9 +140,14 @@ public class HudDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (this.isRegistered() == false)
-        {
-            HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isMinihudLoaded) {
+            if (this.isRegistered() == false)
+            {
+                HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            //HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

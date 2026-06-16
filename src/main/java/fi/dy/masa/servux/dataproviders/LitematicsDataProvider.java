@@ -3,11 +3,12 @@ package fi.dy.masa.servux.dataproviders;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
 import org.apache.commons.lang3.tuple.Pair;
 
 import net.minecraft.block.entity.BlockEntity;
@@ -44,8 +45,9 @@ import fi.dy.masa.servux.util.position.PositionUtils;
 
 public class LitematicsDataProvider extends DataProviderBase
 {
-    public static final LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
-    protected final static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER = ServuxLitematicaHandler.getInstance();
+    @Setter
+    public static LitematicsDataProvider INSTANCE;
+    protected static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER;
     protected final NbtCompound metadata = new NbtCompound();
     protected ServuxIntSetting permissionLevel = new ServuxIntSetting(this,
             "permission_level",
@@ -62,7 +64,9 @@ public class LitematicsDataProvider extends DataProviderBase
     private final SchematicBufferManager bufferManager = new SchematicBufferManager();
     private final Path transmitDir;
 
-    protected LitematicsDataProvider()
+    private final boolean isLitematicaLoaded;
+
+    public LitematicsDataProvider()
     {
         super("litematic_data",
                 ServuxLitematicaHandler.CHANNEL_ID,
@@ -70,11 +74,18 @@ public class LitematicsDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.litematic_data",
                 "Litematics Data provider.");
 
+        HANDLER = ServuxLitematicaHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
         this.transmitDir = this.getTransmitDir();
+        Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer(Reference.LITEMATICA_MODID);
+        if (modContainer.isPresent()) {
+            this.isLitematicaLoaded = true;
+        } else  {
+            this.isLitematicaLoaded = false;
+        }
     }
 
     @Override
@@ -87,9 +98,13 @@ public class LitematicsDataProvider extends DataProviderBase
     public void registerHandler()
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
-        if (this.isRegistered() == false)
-        {
-            HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isLitematicaLoaded) {
+            if (this.isRegistered() == false) {
+                HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            //HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

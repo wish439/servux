@@ -17,7 +17,7 @@
 	"license": "LGPLv3",
 	"icon": "assets/servux/icon.png",
 
-	"environment": "server",
+	"environment": "*",
 
 	"entrypoints": {
 		"main": [

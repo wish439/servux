@@ -4,7 +4,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.entity.Entity;
@@ -56,9 +58,10 @@ import fi.dy.masa.servux.settings.ServuxIntSetting;
 @SuppressWarnings({"unchecked", "deprecation"})
 public class DebugDataProvider extends DataProviderBase
 {
-    public static final DebugDataProvider INSTANCE = new DebugDataProvider();
+    @Setter
+    public static DebugDataProvider INSTANCE;
 
-    protected final static ServuxDebugHandler<ServuxDebugPacket.Payload> HANDLER = ServuxDebugHandler.getInstance();
+    protected static ServuxDebugHandler<ServuxDebugPacket.Payload> HANDLER;
     protected final HashMap<UUID, NbtCompound> registeredPlayers = new HashMap<>();
     protected final NbtCompound metadata = new NbtCompound();
 
@@ -67,7 +70,9 @@ public class DebugDataProvider extends DataProviderBase
     //private final ServuxBoolSetting enableServerDevelopmentMode = new ServuxBoolSetting(this, "server_development_mode", false);
     private final List<IServuxSetting<?>> settings = List.of(this.basePermissionLevel);
 
-    protected DebugDataProvider()
+    private boolean isMinihudLoaded;
+
+    public DebugDataProvider()
     {
         super("debug_data",
               ServuxDebugHandler.CHANNEL_ID,
@@ -75,19 +80,28 @@ public class DebugDataProvider extends DataProviderBase
               2, Reference.MOD_ID + ".provider.debug_data",
               "Vanilla Debug Data provider.");
 
+        HANDLER = ServuxDebugHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else isMinihudLoaded = false;
     }
 
     @Override
     public void registerHandler()
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
-        if (this.isRegistered() == false)
-        {
-            HANDLER.registerPlayPayload(ServuxDebugPacket.Payload.ID, ServuxDebugPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isMinihudLoaded) {
+            if (this.isRegistered() == false)
+            {
+                HANDLER.registerPlayPayload(ServuxDebugPacket.Payload.ID, ServuxDebugPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            //HANDLER.setPlayRegistered(ServuxDebugHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
         HANDLER.registerPlayReceiver(ServuxDebugPacket.Payload.ID, HANDLER::receivePlayPayload);
