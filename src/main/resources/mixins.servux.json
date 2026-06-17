@@ -11,7 +11,6 @@
         "block.MixinRailBlocks",
         "block.MixinStairsBlock",
         "compat.litematica.LitematicaEntitiesDataStorageMixin",
-        "compat.malilib.IPluginClientPlayHandlerMixin",
         "compat.minihud.MiniHudDataStorageMixin",
         "compat.minihud.MiniHudDebugDataManagerMixin",
         "compat.minihud.MiniHudEntitiesDataManagerMixin",

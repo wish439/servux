@@ -102,7 +102,7 @@ public class StructureDataProvider extends DataProviderBase
                 this.setRegistered(true);
             }
         } else {
-            //HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
+            HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

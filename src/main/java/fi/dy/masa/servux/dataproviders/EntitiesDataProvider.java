@@ -88,6 +88,7 @@ public class EntitiesDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
+        HANDLER.unregisterPlayReceiver();
         if (!this.isMinihudLoaded) {
             if (!this.isRegistered())
             {

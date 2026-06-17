@@ -104,7 +104,7 @@ public class LitematicsDataProvider extends DataProviderBase
                 this.setRegistered(true);
             }
         } else {
-            //HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
+            HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

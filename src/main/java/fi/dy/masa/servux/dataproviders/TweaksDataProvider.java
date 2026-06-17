@@ -100,7 +100,7 @@ public class TweaksDataProvider extends DataProviderBase
                 this.setRegistered(true);
             }
         } else {
-            //HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
+            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

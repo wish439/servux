@@ -101,7 +101,7 @@ public class DebugDataProvider extends DataProviderBase
                 this.setRegistered(true);
             }
         } else {
-            //HANDLER.setPlayRegistered(ServuxDebugHandler.CHANNEL_ID);
+            HANDLER.setPlayRegistered(ServuxDebugHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
         HANDLER.registerPlayReceiver(ServuxDebugPacket.Payload.ID, HANDLER::receivePlayPayload);

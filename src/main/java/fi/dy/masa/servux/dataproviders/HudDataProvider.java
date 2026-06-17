@@ -147,7 +147,7 @@ public class HudDataProvider extends DataProviderBase
                 this.setRegistered(true);
             }
         } else {
-            //HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
+            HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 
