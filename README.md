@@ -4,7 +4,7 @@ Servux is a server-side mod that provides extra support/features for some client
 
 **License**: LGPLv3 (see LICENSE file).  
 This fork adds LAN support and is not affiliated with the original authors.
-See the [LICENSE](LICENSE) file for details.
+See the [LICENSE](LICENSE.txt) file for details.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
