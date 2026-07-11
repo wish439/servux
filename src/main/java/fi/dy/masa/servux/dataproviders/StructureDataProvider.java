@@ -102,7 +102,10 @@ public class StructureDataProvider extends DataProviderBase
                 HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
                 this.setRegistered(true);
             }
-        } else this.setRegistered(true);
+        } else {
+            HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
+            this.setRegistered(true);
+        }
 
 
 

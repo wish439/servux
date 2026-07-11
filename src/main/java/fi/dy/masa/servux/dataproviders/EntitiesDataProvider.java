@@ -91,7 +91,10 @@ public class EntitiesDataProvider extends DataProviderBase
                 HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
                 this.setRegistered(true);
             }
-        } else this.setRegistered(true);
+        } else {
+            HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
+            this.setRegistered(true);
+        }
 
         HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

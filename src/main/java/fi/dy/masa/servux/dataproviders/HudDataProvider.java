@@ -147,7 +147,10 @@ public class HudDataProvider extends DataProviderBase
                 HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
                 this.setRegistered(true);
             }
-        } else this.setRegistered(true);
+        } else {
+            HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
+            this.setRegistered(true);
+        }
 
         HANDLER.registerPlayReceiver(ServuxHudPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

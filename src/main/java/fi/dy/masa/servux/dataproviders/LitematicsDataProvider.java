@@ -104,7 +104,10 @@ public class LitematicsDataProvider extends DataProviderBase
                 HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
                 this.setRegistered(true);
             }
-        } else this.setRegistered(true);
+        } else {
+            HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
+            this.setRegistered(true);
+        }
         HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
     }
 

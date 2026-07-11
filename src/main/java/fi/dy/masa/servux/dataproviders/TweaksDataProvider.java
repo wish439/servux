@@ -102,7 +102,10 @@ public class TweaksDataProvider extends DataProviderBase
                 HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
                 this.setRegistered(true);
             }
-        } else this.setRegistered(true);
+        } else {
+            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
+            this.setRegistered(true);
+        }
 
         HANDLER.registerPlayReceiver(ServuxTweaksPacket.Payload.ID, HANDLER::receivePlayPayload);
     }
