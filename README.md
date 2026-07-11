@@ -1,5 +1,3 @@
-[![](https://jitpack.io/v/sakura-ryoko/servux.svg)](https://jitpack.io/#sakura-ryoko/servux)
-
 Servux
 ==============
 Servux is a server-side mod that provides extra support/features for some client-side mods when playing on a server.
@@ -12,7 +10,7 @@ This branch is based [sakura-ryoko/masa's version](https://github.com/sakura-ryo
 
 In version 0.1.x it only has one thing, which is sending structure bounding boxes for MiniHUD so that it can render those also in multiplayer.
 
-For compiled builds (= downloads), see https://www.curseforge.com/minecraft/mc-mods/servux
+For compiled builds (= downloads), see [github Releases](https://github.com/wish439/servux/releases)
 
 Compiling
 =========
