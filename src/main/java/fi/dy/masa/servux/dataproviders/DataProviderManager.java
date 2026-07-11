@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import net.minecraft.core.RegistryAccess;
@@ -23,7 +24,8 @@ import fi.dy.masa.servux.util.JsonUtils;
 
 public class DataProviderManager
 {
-    public static final DataProviderManager INSTANCE = new DataProviderManager();
+    @Setter
+    public static DataProviderManager INSTANCE;
 
     /**
      * lower case name to data provider instances.

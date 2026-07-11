@@ -4,10 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import io.netty.buffer.Unpooled;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -21,17 +20,10 @@ import fi.dy.masa.servux.dataproviders.StructureDataProvider;
 import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxStructuresHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE = new ServuxStructuresHandler<>()
-    {
-        @Override
-        public void receive(ServuxStructuresPacket.Payload payload, ServerPlayNetworking.@NotNull Context context)
-        {
-            ServuxStructuresHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    @Setter
+    private static ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE;
     public static ServuxStructuresHandler<ServuxStructuresPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.fromNamespaceAndPath("servux", "structures");

@@ -4,7 +4,9 @@ import java.util.*;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -38,8 +40,9 @@ import fi.dy.masa.servux.util.Timeout;
 
 public class StructureDataProvider extends DataProviderBase
 {
-    public static final StructureDataProvider INSTANCE = new StructureDataProvider();
-	private final static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER = ServuxStructuresHandler.getInstance();
+    @Setter
+    public static StructureDataProvider INSTANCE = new StructureDataProvider();
+	protected static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER;
 	private final CompoundTag metadata = new CompoundTag();
     private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
     private final ServuxBoolSetting structureBlacklistEnabled = new ServuxBoolSetting(this, "structures_blacklist_enabled", false);
@@ -50,11 +53,13 @@ public class StructureDataProvider extends DataProviderBase
     private final ServuxIntSetting timeout = new ServuxIntSetting(this, "timeout", 600, 1200, 40);
     private final List<IServuxSetting<?>> settings = List.of(this.permissionLevel, this.structureBlacklistEnabled, this.structureWhitelistEnabled, this.structureBlacklist, this.structureWhitelist, this.updateInterval, this.timeout);
 
+    private final boolean isMinihudLoaded;
+
 	private final Map<UUID, PlayerDimensionPosition> registeredPlayers = new HashMap<>();
 	private final Map<UUID, Map<ChunkPos, Timeout>> timeouts = new HashMap<>();
 	private int retainDistance;
 
-	protected StructureDataProvider()
+    public StructureDataProvider()
     {
         super("structure_bounding_boxes",
                 ServuxStructuresHandler.CHANNEL_ID,
@@ -62,6 +67,7 @@ public class StructureDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.structure_bounding_boxes",
                 "Structure Bounding Boxes data for structures such as Witch Huts, Ocean Monuments, Nether Fortresses etc.");
 
+        HANDLER = ServuxStructuresHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
@@ -69,6 +75,12 @@ public class StructureDataProvider extends DataProviderBase
         this.metadata.putInt("timeout", timeout.getValue());
 
         this.setTickRate(40);
+
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else {
+            this.isMinihudLoaded = false;
+        }
     }
 
     @Override
@@ -82,9 +94,14 @@ public class StructureDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isMinihudLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

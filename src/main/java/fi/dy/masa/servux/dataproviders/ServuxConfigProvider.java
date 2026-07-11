@@ -1,6 +1,7 @@
 package fi.dy.masa.servux.dataproviders;
 
 import java.util.List;
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -18,7 +19,8 @@ import fi.dy.masa.servux.util.i18n.i18nManager;
 
 public class ServuxConfigProvider extends DataProviderBase
 {
-    public static final ServuxConfigProvider INSTANCE = new ServuxConfigProvider();
+    @Setter
+    public static ServuxConfigProvider INSTANCE;
     public static final i18nManager LANG = i18nManager.create(Reference.MOD_ID);
 
     private final ServuxIntSetting basePermissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -60,7 +62,7 @@ public class ServuxConfigProvider extends DataProviderBase
             this.defaultLanguage, this.debugLog
     );
 
-    protected ServuxConfigProvider()
+    public ServuxConfigProvider()
     {
         super("servux_main",
                 Identifier.fromNamespaceAndPath("servux", "main"),

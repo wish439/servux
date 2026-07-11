@@ -7,7 +7,9 @@ import java.util.UUID;
 import fi.dy.masa.servux.settings.IServuxSettingCallback;
 import fi.dy.masa.servux.settings.ServuxBoolSetting;
 import fi.dy.masa.servux.util.InventoryUtils;
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -32,8 +34,9 @@ import fi.dy.masa.servux.util.nbt.NbtView;
 
 public class TweaksDataProvider extends DataProviderBase
 {
-    public static final TweaksDataProvider INSTANCE = new TweaksDataProvider();
-	private final static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER = ServuxTweaksHandler.getInstance();
+    @Setter
+    public static TweaksDataProvider INSTANCE = new TweaksDataProvider();
+	private static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER;
     private final CompoundTag metadata = new CompoundTag();
     private final BoolCallbacks boolCallback = new BoolCallbacks();
     private final IntCallbacks intCallback = new IntCallbacks();
@@ -50,11 +53,13 @@ public class TweaksDataProvider extends DataProviderBase
             this.stackableShulkersFix
     );
 
+    private final boolean isTweakerooLoaded;
+
     private final List<UUID> registeredPlayers = new ArrayList<>();
     private final List<UUID> invalidPlayers = new ArrayList<>();
     private boolean configDirty = false;
 
-    protected TweaksDataProvider()
+    public TweaksDataProvider()
     {
         super("tweaks_data",
                 ServuxTweaksHandler.CHANNEL_ID,
@@ -62,6 +67,7 @@ public class TweaksDataProvider extends DataProviderBase
                 0, Reference.MOD_ID+ ".provider.tweaks_data",
                 "Tweaks Data provider for Client Side mods.");
 
+        HANDLER = ServuxTweaksHandler.getInstance();
         this.metadata.putString("name", this.getName());
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
@@ -69,6 +75,12 @@ public class TweaksDataProvider extends DataProviderBase
 
         this.setTickRate(40);
         this.checkTweaksMetadata();
+
+        if (FabricLoader.getInstance().getModContainer(Reference.TWEAKEROO_MODID).isPresent()) {
+            this.isTweakerooLoaded = true;
+        } else {
+            this.isTweakerooLoaded = false;
+        }
     }
 
     @Override
@@ -82,9 +94,14 @@ public class TweaksDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isTweakerooLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

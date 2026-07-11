@@ -17,22 +17,35 @@ repositories {
     maven { url = 'https://jitpack.io'
 		content { includeGroupAndSubgroups('com.github') }
 	}
+	maven {
+		url = "https://api.modrinth.com/maven"
+	}
 }
 
 dependencies {
+	// Lombok
+	annotationProcessor "org.projectlombok:lombok:1.18.34"
+	compileOnly "org.projectlombok:lombok:1.18.34"
+
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 	implementation "com.google.code.findbugs:jsr305:3.0.2"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
-	include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
-	include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+	// Fabric API
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Lucko Permissions API
 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
-//	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
+
+	// Conditional Mixin (for compat)
+	include modApi("me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}")
+
+	// Compile-only dependencies for compat mods (must exist at runtime if used)
+	modCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	modCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
+	modCompileOnly "maven.modrinth:minihud:${project.minihud_version}"
+	modCompileOnly "maven.modrinth:tweakeroo:${project.tweakeroo_version}"
 }
 
 base {

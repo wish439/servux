@@ -15,23 +15,27 @@
         "entity.MixinItemEntity",
         "entity.MixinMobEntity",
         "item.MixinBlockItem_EasyPlace",
-        "item.MixinItemStack",
         "nbt.IMixinNbtReadView",
         "nbt.IMixinNbtWriteView",
         "network.MixinServerPlayNetworkHandler_EasyPlace",
         "network.MixinServerPlayNetworkHandler_QueryNbt",
         "server.IMixinServerTickManager",
         "server.MixinCommandManager",
-        "server.MixinMinecraftDedicatedServer",
         "server.MixinMinecraftServer",
         "server.MixinPlayerManager",
         "world.IMixinWorldTickScheduler",
         "world.MixinServerChunkLoadingManager",
         "world.MixinServerWorld",
         "world.MixinWorld_UpdateSuppression",
-        "world.MixinWorldChunk_UpdateSuppression"
+        "world.MixinWorldChunk_UpdateSuppression",
+        "compat.litematica.LitematicaEntitiesDataStorageMixin",
+        "compat.minihud.MiniHudDataStorageMixin",
+        "compat.minihud.MiniHudEntitiesDataManagerMixin",
+        "compat.minihud.MiniHudHudDataManagerMixin",
+        "compat.tweakeroo.TweakerooEntityDataManagerMixin"
     ],
     "injectors": {
         "defaultRequire": 1
-  }
+    },
+    "plugin": "fi.dy.masa.servux.ConditionalMixinCompat"
 }

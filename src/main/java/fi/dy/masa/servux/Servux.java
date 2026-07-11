@@ -1,6 +1,7 @@
 package fi.dy.masa.servux;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import fi.dy.masa.servux.commands.CommandProvider;
@@ -16,9 +17,12 @@ public class Servux implements ModInitializer
     @Override
     public void onInitialize()
     {
+        EventRegistry.registerEvents();
         ServerInitHandler.getInstance().registerServerInitHandler(new ServuxInitHandler());
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            new ServuxCommand().register(dispatcher, registryAccess, environment);
+        });
         CommandProvider.getInstance().registerCommand(new ServuxCommand());
-        // Command Manager gets called before the Init Manager onServerInit()
     }
 
     public static void debugLog(String msg, Object... args)
