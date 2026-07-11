@@ -3,7 +3,9 @@ package fi.dy.masa.servux.dataproviders;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
+import lombok.Setter;
+import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -12,7 +14,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
-
 import fi.dy.masa.servux.Reference;
 import fi.dy.masa.servux.Servux;
 import fi.dy.masa.servux.network.IPluginServerPlayHandler;
@@ -22,13 +23,13 @@ import fi.dy.masa.servux.network.packet.ServuxEntitiesPacket;
 import fi.dy.masa.servux.settings.IServuxSetting;
 import fi.dy.masa.servux.settings.ServuxBoolSetting;
 import fi.dy.masa.servux.settings.ServuxIntSetting;
-import fi.dy.masa.servux.util.PermissionsUtil;
 import fi.dy.masa.servux.util.nbt.NbtView;
 
 public class EntitiesDataProvider extends DataProviderBase
 {
-    public static final EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
-    private final static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER = ServuxEntitiesHandler.getInstance();
+    @Setter
+    public static EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
+    private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER;
 	private final CompoundTag metadata = new CompoundTag();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
 	private final ServuxBoolSetting nbtQueryOverride = new ServuxBoolSetting(this, "nbt_query_override", false);
@@ -52,7 +53,9 @@ public class EntitiesDataProvider extends DataProviderBase
 	private final List<UUID> registeredPlayers = new ArrayList<>();
     private final List<UUID> invalidPlayers = new ArrayList<>();
 
-    protected EntitiesDataProvider()
+    private final boolean isMinihudLoaded;
+
+    public EntitiesDataProvider()
     {
         super("entity_data",
                 ServuxEntitiesHandler.CHANNEL_ID,
@@ -64,6 +67,13 @@ public class EntitiesDataProvider extends DataProviderBase
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+
+        HANDLER = ServuxEntitiesHandler.getInstance();
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else {
+            this.isMinihudLoaded = false;
+        }
     }
 
     @Override
@@ -77,9 +87,15 @@ public class EntitiesDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        HANDLER.unregisterPlayReceiver();
+        if (!this.isMinihudLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 
@@ -246,7 +262,7 @@ public class EntitiesDataProvider extends DataProviderBase
     {
         if (this.nbtQueryOverride.getValue())
         {
-            return PermissionsUtil.check(player, this.permNode+".nbt_query_override", this.nbtQueryPermissionLevel.getValue());
+            return Permissions.check(player, this.permNode+".nbt_query_override", this.nbtQueryPermissionLevel.getValue());
         }
 
         return player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
@@ -266,7 +282,7 @@ public class EntitiesDataProvider extends DataProviderBase
 	{
 		if (this.hasNbtAllowPlayerInventory())
 		{
-			return PermissionsUtil.check(player, this.permNode+".nbt_allow_player_inventory", this.playerInventoryPermissionLevel.getValue());
+			return Permissions.check(player, this.permNode+".nbt_allow_player_inventory", this.playerInventoryPermissionLevel.getValue());
 		}
 
 		return false;
@@ -281,7 +297,7 @@ public class EntitiesDataProvider extends DataProviderBase
 	{
 		if (this.hasNbtAllowPlayerEnderItems())
 		{
-			return PermissionsUtil.check(player, this.permNode+".nbt_allow_player_ender_items", this.playerEnderItemsPermissionLevel.getValue());
+			return Permissions.check(player, this.permNode+".nbt_allow_player_ender_items", this.playerEnderItemsPermissionLevel.getValue());
 		}
 
 		return false;
@@ -290,7 +306,7 @@ public class EntitiesDataProvider extends DataProviderBase
 	@Override
     public boolean hasPermission(ServerPlayer player)
     {
-        return PermissionsUtil.check(player, this.permNode, this.permissionLevel.getValue());
+        return Permissions.check(player, this.permNode, this.permissionLevel.getValue());
     }
 
     @Override

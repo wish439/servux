@@ -1,26 +1,26 @@
 package fi.dy.masa.servux.dataproviders;
 
 import java.util.List;
-
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import lombok.Setter;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
-
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import fi.dy.masa.servux.Reference;
 import fi.dy.masa.servux.settings.IServuxSetting;
 import fi.dy.masa.servux.settings.ServuxBoolSetting;
 import fi.dy.masa.servux.settings.ServuxIntSetting;
 import fi.dy.masa.servux.settings.ServuxStringSetting;
-import fi.dy.masa.servux.util.PermissionsUtil;
 import fi.dy.masa.servux.util.StringUtils;
 import fi.dy.masa.servux.util.i18n.i18nManager;
 
 public class ServuxConfigProvider extends DataProviderBase
 {
-    public static final ServuxConfigProvider INSTANCE = new ServuxConfigProvider();
+    @Setter
+    public static ServuxConfigProvider INSTANCE;
     public static final i18nManager LANG = i18nManager.create(Reference.MOD_ID);
 
     private final ServuxIntSetting basePermissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -62,7 +62,7 @@ public class ServuxConfigProvider extends DataProviderBase
             this.defaultLanguage, this.debugLog
     );
 
-    protected ServuxConfigProvider()
+    public ServuxConfigProvider()
     {
         super("servux_main",
                 Identifier.fromNamespaceAndPath("servux", "main"),
@@ -122,7 +122,7 @@ public class ServuxConfigProvider extends DataProviderBase
             return false;
         }
 
-        return PermissionsUtil.check(player, Reference.MOD_ID+".main.admin", this.adminPermissionLevel.getValue());
+        return Permissions.check(player, Reference.MOD_ID+".main.admin", this.adminPermissionLevel.getValue());
     }
 
     public boolean hasPermission_EasyPlace(ServerPlayer player)
@@ -132,7 +132,7 @@ public class ServuxConfigProvider extends DataProviderBase
             return false;
         }
 
-        return PermissionsUtil.check(player, Reference.MOD_ID+".main.easy_place", this.easyPlacePermissionLevel.getValue());
+        return Permissions.check(player, Reference.MOD_ID+".main.easy_place", this.easyPlacePermissionLevel.getValue());
     }
 
     public boolean isEasyPlaceValidatorEnabled()

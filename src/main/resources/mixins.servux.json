@@ -4,6 +4,7 @@
     "compatibilityLevel": "JAVA_21",
     "minVersion": "0.8",
     "mixins": [
+        "server.MixinMain",
         "block.MixinBlock_UpdateSuppression",
         "block.MixinChestBlock",
         "block.MixinHopperBlockEntity",
@@ -13,26 +14,28 @@
         "entity.MixinAllayEntity",
         "entity.MixinItemEntity",
         "entity.MixinMobEntity",
-        "item.IMixinItemInstance",
         "item.MixinBlockItem_EasyPlace",
-        "item.MixinItemStack",
         "nbt.IMixinNbtReadView",
         "nbt.IMixinNbtWriteView",
         "network.MixinServerPlayNetworkHandler_EasyPlace",
         "network.MixinServerPlayNetworkHandler_QueryNbt",
         "server.IMixinServerTickManager",
         "server.MixinCommandManager",
-        "server.MixinMain",
-        "server.MixinMinecraftDedicatedServer",
         "server.MixinMinecraftServer",
         "server.MixinPlayerManager",
         "world.IMixinWorldTickScheduler",
         "world.MixinServerChunkLoadingManager",
         "world.MixinServerWorld",
         "world.MixinWorld_UpdateSuppression",
-        "world.MixinWorldChunk_UpdateSuppression"
+        "world.MixinWorldChunk_UpdateSuppression",
+        "compat.litematica.LitematicaEntitiesDataStorageMixin",
+        "compat.minihud.MiniHudDataStorageMixin",
+        "compat.minihud.MiniHudEntitiesDataManagerMixin",
+        "compat.minihud.MiniHudHudDataManagerMixin",
+        "compat.tweakeroo.TweakerooEntityDataManagerMixin"
     ],
     "injectors": {
         "defaultRequire": 1
-  }
+    },
+    "plugin": "fi.dy.masa.servux.ConditionalMixinCompat"
 }

@@ -4,11 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import io.netty.buffer.Unpooled;
-import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
+import lombok.Setter;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -22,17 +19,10 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxEntitiesHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>()
-    {
-        @Override
-        public void receive(ServuxEntitiesPacket.@NonNull Payload payload, ServerPlayNetworking.@NotNull Context context)
-        {
-            ServuxEntitiesHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    @Setter
+    private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE;
     public static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.fromNamespaceAndPath("servux", "entity_data");

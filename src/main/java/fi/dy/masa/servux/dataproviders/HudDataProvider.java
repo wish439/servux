@@ -1,10 +1,20 @@
 package fi.dy.masa.servux.dataproviders;
 
-import java.util.*;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.mojang.serialization.DataResult;
+import fi.dy.masa.servux.Reference;
+import fi.dy.masa.servux.Servux;
+import fi.dy.masa.servux.loggers.DataLogger;
+import fi.dy.masa.servux.loggers.DataLoggerBase;
+import fi.dy.masa.servux.network.IPluginServerPlayHandler;
+import fi.dy.masa.servux.network.ServerPlayHandler;
+import fi.dy.masa.servux.network.packet.ServuxHudHandler;
+import fi.dy.masa.servux.network.packet.ServuxHudPacket;
+import fi.dy.masa.servux.settings.*;
+import fi.dy.masa.servux.util.StringUtils;
+import lombok.Setter;
+import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.nbt.CompoundTag;
@@ -18,23 +28,15 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
-
-import fi.dy.masa.servux.Reference;
-import fi.dy.masa.servux.Servux;
-import fi.dy.masa.servux.loggers.DataLogger;
-import fi.dy.masa.servux.loggers.DataLoggerBase;
-import fi.dy.masa.servux.network.IPluginServerPlayHandler;
-import fi.dy.masa.servux.network.ServerPlayHandler;
-import fi.dy.masa.servux.network.packet.ServuxHudHandler;
-import fi.dy.masa.servux.network.packet.ServuxHudPacket;
-import fi.dy.masa.servux.settings.*;
-import fi.dy.masa.servux.util.PermissionsUtil;
-import fi.dy.masa.servux.util.StringUtils;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
 
 public class HudDataProvider extends DataProviderBase
 {
-    public static final HudDataProvider INSTANCE = new HudDataProvider();
-    protected final static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER = ServuxHudHandler.getInstance();
+    @Setter
+    public static HudDataProvider INSTANCE = new HudDataProvider();
+    protected static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER;
     protected final CompoundTag metadata = new CompoundTag();
     private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
 	private final ServuxIntSetting updateInterval = new ServuxIntSetting(this, "update_interval", 40, 300, 20);
@@ -71,7 +73,9 @@ public class HudDataProvider extends DataProviderBase
     private final HashMap<DataLogger, DataLoggerBase<?>> LOGGERS = new HashMap<>();
     private final HashMap<DataLogger, Tag> DATA = new HashMap<>();
 
-    protected HudDataProvider()
+    private final boolean isMinihudLoaded;
+
+    public HudDataProvider()
     {
         super("hud_data",
               ServuxHudHandler.CHANNEL_ID,
@@ -83,6 +87,14 @@ public class HudDataProvider extends DataProviderBase
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+
+        HANDLER = ServuxHudHandler.getInstance();
+
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else {
+            this.isMinihudLoaded = false;
+        }
 
         // Spawn Metadata
         this.metadata.putString("spawnDimension", this.getSpawnPos().dimension().identifier().toString());
@@ -132,9 +144,14 @@ public class HudDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isMinihudLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 
@@ -753,28 +770,28 @@ public class HudDataProvider extends DataProviderBase
 
     public boolean hasPermissionsForWeather(ServerPlayer player)
     {
-        return PermissionsUtil.check(player, this.permNode + ".weather", this.weatherPermissionLevel.getValue());
+        return Permissions.check(player, this.permNode + ".weather", this.weatherPermissionLevel.getValue());
     }
 
     public boolean hasPermissionsForSeed(ServerPlayer player)
     {
-        return PermissionsUtil.check(player, this.permNode + ".seed", this.seedPermissionLevel.getValue());
+        return Permissions.check(player, this.permNode + ".seed", this.seedPermissionLevel.getValue());
     }
 
     public boolean hasPermissionsForLoggers(ServerPlayer player)
     {
-        return PermissionsUtil.check(player, this.permNode + ".logger", this.loggerPermissionLevel.getValue());
+        return Permissions.check(player, this.permNode + ".logger", this.loggerPermissionLevel.getValue());
     }
 
     public boolean hasPermissionsForLogger(ServerPlayer player, String type)
     {
-        return PermissionsUtil.check(player, this.permNode + ".logger."+type, this.loggerPermissionLevel.getValue());
+        return Permissions.check(player, this.permNode + ".logger."+type, this.loggerPermissionLevel.getValue());
     }
 
     @Override
     public boolean hasPermission(ServerPlayer player)
     {
-        return PermissionsUtil.check(player, this.permNode, this.permissionLevel.getValue());
+        return Permissions.check(player, this.permNode, this.permissionLevel.getValue());
     }
 
     @Override
