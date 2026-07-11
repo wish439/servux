@@ -54,6 +54,7 @@ public class EntitiesDataProvider extends DataProviderBase
 			this.playerEnderItemsPermissionLevel
 	);
 
+	private final List<UUID> registeredPlayers = new ArrayList<>();
     private final List<UUID> invalidPlayers = new ArrayList<>();
 
     private boolean isMinihudLoaded;
@@ -121,10 +122,10 @@ public class EntitiesDataProvider extends DataProviderBase
     @Override
     public boolean isPlayerRegistered(ServerPlayerEntity player)
     {
-        return !this.isPlayerInvalid(player);
+	    return this.registeredPlayers.contains(player.getUuid()) && !this.isPlayerInvalid(player);
     }
 
-    public void sendMetadata(ServerPlayerEntity player)
+    public void register(ServerPlayerEntity player)
     {
         if (!this.isEnabled()) return;
 
@@ -136,6 +137,8 @@ public class EntitiesDataProvider extends DataProviderBase
         }
 
         Servux.debugLog("entityDataChannel: sendMetadata to player {}", player.getName().getLiteralString());
+
+		this.registeredPlayers.add(player.getUuid());
 
         // Sends Metadata handshake, it doesn't succeed the first time, so using networkHandler
         if (player.networkHandler != null)
@@ -151,11 +154,13 @@ public class EntitiesDataProvider extends DataProviderBase
     public void onPacketFailure(ServerPlayerEntity player)
     {
         this.setPlayerInvalid(player);
+	    this.registeredPlayers.remove(player.getUuid());
     }
 
     public void removePlayer(ServerPlayerEntity player)
     {
         this.removeInvalidPlayer(player);
+	    this.registeredPlayers.remove(player.getUuid());
     }
 
     private void setPlayerInvalid(ServerPlayerEntity player)
@@ -178,7 +183,7 @@ public class EntitiesDataProvider extends DataProviderBase
 
     public void onBlockEntityRequest(ServerPlayerEntity player, BlockPos pos)
     {
-        if (this.hasPermission(player) == false || !this.isEnabled())
+        if (!this.hasPermission(player) || !this.isPlayerRegistered(player) || !this.isEnabled())
         {
             return;
         }
@@ -192,7 +197,7 @@ public class EntitiesDataProvider extends DataProviderBase
 
     public void onEntityRequest(ServerPlayerEntity player, int entityId)
     {
-        if (this.hasPermission(player) == false || !this.isEnabled())
+        if (!this.hasPermission(player) || !this.isPlayerRegistered(player) || !this.isEnabled())
         {
             return;
         }
