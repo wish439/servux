@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import io.netty.buffer.Unpooled;
+import lombok.Setter;
 import org.apache.commons.lang3.tuple.Pair;
 
 import net.fabricmc.api.EnvType;
@@ -27,16 +28,10 @@ import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 import fi.dy.masa.servux.schematic.LitematicaSchematic;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxLitematicaHandler<T extends CustomPayload> implements IPluginServerPlayHandler<T>
 {
-    private static final ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE = new ServuxLitematicaHandler<>() {
-        @Override
-        public void receive(ServuxLitematicaPacket.Payload payload, ServerPlayNetworking.Context context)
-        {
-            ServuxLitematicaHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    @Setter
+    private static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE;
     public static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.of("servux", "litematics");

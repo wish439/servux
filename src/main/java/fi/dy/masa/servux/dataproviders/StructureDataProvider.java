@@ -4,8 +4,10 @@ import java.util.*;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import lombok.Setter;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
@@ -40,8 +42,9 @@ import fi.dy.masa.servux.util.Timeout;
 
 public class StructureDataProvider extends DataProviderBase
 {
-    public static final StructureDataProvider INSTANCE = new StructureDataProvider();
-	private final static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER = ServuxStructuresHandler.getInstance();
+    @Setter
+    public static StructureDataProvider INSTANCE = new StructureDataProvider();
+	private static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER;
 	private final NbtCompound metadata = new NbtCompound();
     private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
     private final ServuxBoolSetting structureBlacklistEnabled = new ServuxBoolSetting(this, "structures_blacklist_enabled", false);
@@ -56,7 +59,9 @@ public class StructureDataProvider extends DataProviderBase
 	private final Map<UUID, Map<ChunkPos, Timeout>> timeouts = new HashMap<>();
 	private int retainDistance;
 
-	protected StructureDataProvider()
+    private final boolean isMinihudLoaded;
+
+	public StructureDataProvider()
     {
         super("structure_bounding_boxes",
                 ServuxStructuresHandler.CHANNEL_ID,
@@ -70,7 +75,14 @@ public class StructureDataProvider extends DataProviderBase
         this.metadata.putString("servux", Reference.MOD_STRING);
         this.metadata.putInt("timeout", timeout.getValue());
 
+        HANDLER = ServuxStructuresHandler.getInstance();
         this.setTickRate(40);
+
+        if (FabricLoader.getInstance().getModContainer(Reference.MINIHUD_MODID).isPresent()) {
+            this.isMinihudLoaded = true;
+        } else {
+            this.isMinihudLoaded = false;
+        }
     }
 
     @Override
@@ -84,9 +96,14 @@ public class StructureDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.isMinihudLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

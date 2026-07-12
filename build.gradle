@@ -78,7 +78,7 @@ def getLatestModVersion(String slug, String mcVersion, String loader = "fabric")
 	}
 }
 
-String mcVersion = project.findProperty('minecraft_version') ?: "1.21.1"
+String mcVersion = project.findProperty('minecraft_version') ?: "1.21.10"
 def loader = "fabric"
 
 def modsToDownload = ['minihud', 'malilib', 'litematica']  // 按需修改
@@ -149,6 +149,10 @@ dependencies {
 
 	// Lucko Permissions API
 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+
+
+	// Conditional Mixin (for compat)
+	include api("me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}")
 //	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
 }
 
