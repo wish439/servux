@@ -9,18 +9,143 @@ repositories {
 	maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
 //	maven { url = 'https://maven.nucleoid.xyz/' }
 	// maven { url = 'https://jitpack.io' }
+	maven {
+		url = "https://api.modrinth.com/maven"
+	}
+}
+
+
+import groovy.json.JsonSlurper
+
+// 导入必要的类
+
+def getLatestModVersion(String slug, String mcVersion, String loader = "fabric") {
+	// 缓存逻辑保持不变
+	def cacheFile = project.layout.buildDirectory.file("modrinth-cache.properties").get().asFile
+	def props = new Properties()
+	if (cacheFile.exists()) {
+		cacheFile.withInputStream { props.load(it) }
+	}
+	def cacheKey = "${slug}_${mcVersion}_${loader}"
+	def cachedVersion = props.getProperty(cacheKey)
+	if (cachedVersion) {
+		project.logger.lifecycle("Using cached version for $slug: $cachedVersion")
+		return cachedVersion
+	}
+
+	// 构建参数 - 注意：game_versions 是 JSON 数组字符串，需要编码
+	def gameVersionsJson = "[\"${mcVersion}\"]"
+	def loadersJson = "[\"${loader}\"]"
+
+	// 对参数值进行 URL 编码
+	def encodedGameVersions = URLEncoder.encode(gameVersionsJson, "UTF-8")
+	def encodedLoaders = URLEncoder.encode(loadersJson, "UTF-8")
+
+	// 拼接 URL
+	def urlStr = "https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodedGameVersions}&loaders=${encodedLoaders}"
+	project.logger.lifecycle("Fetching from: $urlStr")
+
+	try {
+		def connection = new URL(urlStr).openConnection()
+		connection.setRequestProperty("User-Agent", "MyGradleScript/1.0 (contact@example.com)")
+		connection.connect()
+		if (connection.responseCode != 200) {
+			throw new GradleException("API returned ${connection.responseCode} for URL: $urlStr")
+		}
+		def json = new JsonSlurper().parse(connection.inputStream) as List
+		if (json.isEmpty()) {
+			throw new GradleException("No version found for $slug with mc=$mcVersion loader=$loader")
+		}
+
+		// 按版本号排序（Semantic Versioning 比较）
+		def sortedVersions = json.sort { a, b ->
+			def vA = a.version_number.split('\\.')*.toInteger()
+			def vB = b.version_number.split('\\.')*.toInteger()
+			for (int i = 0; i < Math.min(vA.size(), vB.size()); i++) {
+				if (vA[i] != vB[i]) return vB[i] <=> vA[i]
+			}
+			return vB.size() <=> vA.size()
+		}
+
+		def latest = sortedVersions[0].version_number
+		props.setProperty(cacheKey, latest)
+		cacheFile.parentFile.mkdirs()
+		cacheFile.withOutputStream { props.store(it, "Modrinth cache") }
+		project.logger.lifecycle("Resolved $slug -> $latest")
+		return latest
+	} catch (Exception e) {
+		throw new GradleException("Failed to fetch version for $slug (URL: $urlStr)", e)
+	}
+}
+
+String mcVersion = project.findProperty('minecraft_version') ?: "1.21.1"
+def loader = "fabric"
+
+def modsToDownload = ['minihud', 'malilib', 'litematica']  // 按需修改
+
+tasks.register('downloadMods') {
+	doLast {
+		def targetDir = new File("testMods", mcVersion)
+		targetDir.mkdirs()
+
+		modsToDownload.each { slug ->
+			// 获取最新版本号
+			def version = getLatestModVersion(slug, mcVersion, loader)
+			def gameVersionsJson = "[\"${mcVersion}\"]"
+			def loadersJson = "[\"${loader}\"]"
+			def encodedGameVersions = URLEncoder.encode(gameVersionsJson, "UTF-8")
+			def encodedLoaders = URLEncoder.encode(loadersJson, "UTF-8")
+			// 获取该版本的完整信息（为了拿到 file.url 和 filename）
+			def url = "https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodedGameVersions}&loaders=${encodedLoaders}"
+			def conn = new URL(url).openConnection()
+			conn.setRequestProperty("User-Agent", "GradleScript/1.0")
+			def json = new JsonSlurper().parse(conn.inputStream) as List
+			def versionData = json.find { it.version_number == version }
+			if (!versionData) {
+				project.logger.error("Could not find version $version for $slug, skipping")
+				return
+			}
+			def fileInfo = versionData.files.find { it.primary } ?: versionData.files[0]
+			def fileUrl = fileInfo.url
+			def fileName = fileInfo.filename
+			def outputFile = new File(targetDir, fileName)
+
+			// 检查是否已存在且版本相同（通过文件名判断，或者更精确地比较版本）
+			// 这里简单判断：如果文件存在且文件名包含当前版本号，则跳过
+			if (outputFile.exists() && fileName.contains(version)) {
+				project.logger.lifecycle("$fileName already exists (version $version), skipping download")
+				return
+			}
+
+			project.logger.lifecycle("Downloading $fileName from $fileUrl ...")
+			try {
+				def inputStream = new URL(fileUrl).openStream()
+				outputFile.withOutputStream { it << inputStream }
+				project.logger.lifecycle("Downloaded to ${outputFile.absolutePath}")
+			} catch (Exception e) {
+				project.logger.error("Failed to download $fileName: $e.message")
+			}
+		}
+	}
 }
 
 dependencies {
+	annotationProcessor "org.projectlombok:lombok:1.18.46"
+	compileOnly "org.projectlombok:lombok:1.18.46"
+
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 	implementation "com.google.code.findbugs:jsr305:3.0.2"
 
+	modImplementation "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
+	modImplementation "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
+	modImplementation "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
+	modImplementation "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
+
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
-	include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
-	include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Lucko Permissions API
 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
