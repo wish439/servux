@@ -6,8 +6,6 @@ Servux is a server-side mod that provides extra support/features for some client
 This fork adds LAN support and is not affiliated with the original authors.
 See the [LICENSE](LICENSE.txt) file for details.
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
 ~~**Servux itself is never needed on the clients or in single player**~~,
 ~~it's only needed/useful on the dedicated server side in multiplayer.~~
 **Now Servux can work on Lan in my modified version**.
