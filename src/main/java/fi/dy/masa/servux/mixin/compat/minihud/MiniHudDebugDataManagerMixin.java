@@ -7,7 +7,6 @@ import fi.dy.masa.minihud.data.DebugDataManager;
 import fi.dy.masa.minihud.network.ServuxDebugHandler;
 import fi.dy.masa.minihud.util.DataStorage;
 import fi.dy.masa.servux.network.packet.ServuxDebugPacket;
-import fi.dy.masa.servux.network.packet.ServuxStructuresPacket;
 import me.fallenbreath.conditionalmixin.api.annotation.Condition;
 import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
 import net.minecraft.network.PacketByteBuf;

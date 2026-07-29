@@ -6,7 +6,7 @@ import fi.dy.masa.malilib.network.IPluginClientPlayHandler;
 import fi.dy.masa.tweakeroo.data.DataManager;
 import fi.dy.masa.tweakeroo.data.EntityDataManager;
 import fi.dy.masa.tweakeroo.network.ServuxTweaksHandler;
-import fi.dy.masa.tweakeroo.network.ServuxTweaksPacket;
+import fi.dy.masa.servux.network.packet.ServuxTweaksPacket;
 import me.fallenbreath.conditionalmixin.api.annotation.Condition;
 import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
 import net.minecraft.network.PacketByteBuf;
