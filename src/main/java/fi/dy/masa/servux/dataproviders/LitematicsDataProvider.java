@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
+import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.lang3.tuple.Pair;
 
 import net.minecraft.core.BlockPos;
@@ -46,7 +49,8 @@ import fi.dy.masa.servux.util.position.PositionUtils;
 
 public class LitematicsDataProvider extends DataProviderBase
 {
-    public static final LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
+    @Setter
+    public static LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
 	private final static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER = ServuxLitematicaHandler.getInstance();
 	private final CompoundTag metadata = new CompoundTag();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -61,7 +65,9 @@ public class LitematicsDataProvider extends DataProviderBase
     private final SchematicBufferManager bufferManager = new SchematicBufferManager();
     private final Path transmitDir;
 
-    protected LitematicsDataProvider()
+    private boolean litematicaLoaded;
+
+    public LitematicsDataProvider()
     {
         super("litematic_data",
                 ServuxLitematicaHandler.CHANNEL_ID,
@@ -74,6 +80,8 @@ public class LitematicsDataProvider extends DataProviderBase
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
         this.transmitDir = this.getTransmitDir();
+
+        this.litematicaLoaded = FabricLoader.getInstance().isModLoaded(Reference.LITEMATICA_MODID);
     }
 
     @Override
@@ -87,11 +95,17 @@ public class LitematicsDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.litematicaLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
+
 
         HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
     }
