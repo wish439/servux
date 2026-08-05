@@ -4,8 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import io.netty.buffer.Unpooled;
-import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -19,10 +22,17 @@ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 
+@Environment(EnvType.SERVER)
 public abstract class ServuxHudHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
 {
-    @Setter
-    private static ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE;
+    private static final ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>()
+    {
+        @Override
+        public void receive(ServuxHudPacket.@NonNull Payload payload, ServerPlayNetworking.@NotNull Context context)
+        {
+            ServuxHudHandler.INSTANCE.receivePlayPayload(payload, context);
+        }
+    };
     public static ServuxHudHandler<ServuxHudPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.fromNamespaceAndPath("servux", "hud_metadata");
