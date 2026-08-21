@@ -37,7 +37,7 @@ jobs:
     - name: Upload Release Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: servux-fabric-0.11.2+lan-supported
+        name: result
         path: build/libs/*.jar
 
     # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
