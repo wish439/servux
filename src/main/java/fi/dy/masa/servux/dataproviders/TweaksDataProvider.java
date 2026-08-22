@@ -42,16 +42,16 @@ public class TweaksDataProvider extends DataProviderBase
 {
     @Setter
     public static TweaksDataProvider INSTANCE = new TweaksDataProvider();
-	private final static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER = ServuxTweaksHandler.getInstance();
+    private final static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER = ServuxTweaksHandler.getInstance();
     private final CompoundData metadata = new CompoundData();
     private final BoolCallbacks boolCallback = new BoolCallbacks();
     private final IntCallbacks intCallback = new IntCallbacks();
-	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0, this.intCallback);
-	private final ServuxIntSetting updateInterval = new ServuxIntSetting(this, "update_interval", 120, 1200, 40, this.intCallback);
-	private final ServuxBoolSetting stackableShulkers = new ServuxBoolSetting(this, "stackable_shulkers", false, this.boolCallback);
-	private final ServuxIntSetting stackableShulkersSize = new ServuxIntSetting(this, "stackable_shulkers_count", 64, 99, 1, this.intCallback);
-	private final ServuxBoolSetting stackableShulkersFix = new ServuxBoolSetting(this, "stackable_shulkers_fix", true, this.boolCallback);
-	private final List<IServuxSetting<?>> settings = List.of(
+    private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0, this.intCallback);
+    private final ServuxIntSetting updateInterval = new ServuxIntSetting(this, "update_interval", 120, 1200, 40, this.intCallback);
+    private final ServuxBoolSetting stackableShulkers = new ServuxBoolSetting(this, "stackable_shulkers", false, this.boolCallback);
+    private final ServuxIntSetting stackableShulkersSize = new ServuxIntSetting(this, "stackable_shulkers_count", 64, 99, 1, this.intCallback);
+    private final ServuxBoolSetting stackableShulkersFix = new ServuxBoolSetting(this, "stackable_shulkers_fix", true, this.boolCallback);
+    private final List<IServuxSetting<?>> settings = List.of(
             this.permissionLevel,
             this.updateInterval,
             this.stackableShulkers,
@@ -274,6 +274,7 @@ public class TweaksDataProvider extends DataProviderBase
         UUID uuid = player.getUUID();
         this.removeInvalidPlayer(player);
         this.registeredPlayers.remove(uuid);
+        HANDLER.resetFailures(this.getNetworkChannel(), player);
     }
 
     private void setPlayerInvalid(ServerPlayer player)
@@ -407,7 +408,7 @@ public class TweaksDataProvider extends DataProviderBase
         return stack.getComponents().getOrDefault(DataComponents.MAX_STACK_SIZE, 1);
     }
 
-	@Override
+    @Override
     public boolean hasPermission(ServerPlayer player)
     {
         return PermissionsUtil.check(player, this.permNode, this.permissionLevel.getValue());

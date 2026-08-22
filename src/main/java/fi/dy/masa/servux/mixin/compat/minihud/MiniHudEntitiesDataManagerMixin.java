@@ -23,7 +23,7 @@ public class MiniHudEntitiesDataManagerMixin {
     @Shadow @Final
     private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER;
 
-    @WrapOperation(method = "receiveServuxMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer()Z"))
+    @WrapOperation(method = "receiveServuxMetadata(Lfi/dy/masa/malilib/util/data/tag/CompoundData;)Z", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer()Z"))
     private boolean hasIntegratedServer(DataStorage instance, Operation<Boolean> original) {
         return false;
     }

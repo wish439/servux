@@ -6,6 +6,8 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
+import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -44,7 +46,8 @@ import fi.dy.masa.servux.util.position.PlayerDimensionPosition;
 
 public class StructureDataProvider extends DataProviderBase
 {
-	public static final StructureDataProvider INSTANCE = new StructureDataProvider();
+	@Setter
+	public static StructureDataProvider INSTANCE = new StructureDataProvider();
 	private final static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER = ServuxStructuresHandler.getInstance();
 	private final CompoundData metadata = new CompoundData();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -63,7 +66,9 @@ public class StructureDataProvider extends DataProviderBase
 	private final ConcurrentHashMap<UUID, Integer> maxPacketSize = new ConcurrentHashMap<>(16, 0.9f, 2);
 	private int retainDistance;
 
-	protected StructureDataProvider()
+	private boolean minihudLoaded;
+
+	public StructureDataProvider()
 	{
 		super("structure_bounding_boxes",
 		      ServuxStructuresHandler.CHANNEL_ID,
@@ -78,6 +83,8 @@ public class StructureDataProvider extends DataProviderBase
 		this.metadata.putInt("timeout", timeout.getValue());
 
 		this.setTickRate(40);
+
+		this.minihudLoaded = FabricLoader.getInstance().isModLoaded(Reference.MINIHUD_MODID);
 	}
 
 	@Override
@@ -91,11 +98,17 @@ public class StructureDataProvider extends DataProviderBase
 	{
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-		if (!this.isRegistered())
-		{
-			HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+		if (!this.minihudLoaded) {
+			if (!this.isRegistered())
+			{
+				HANDLER.registerPlayPayload(ServuxStructuresPacket.Payload.ID, ServuxStructuresPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+				this.setRegistered(true);
+			}
+		} else {
+			HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
 			this.setRegistered(true);
 		}
+
 
 		HANDLER.registerPlayReceiver(ServuxStructuresPacket.Payload.ID, HANDLER::receivePlayPayload);
 	}

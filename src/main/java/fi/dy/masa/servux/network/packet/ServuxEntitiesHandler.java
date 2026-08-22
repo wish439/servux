@@ -3,6 +3,8 @@ package fi.dy.masa.servux.network.packet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
@@ -21,10 +23,10 @@ import fi.dy.masa.servux.dataproviders.EntitiesDataProvider;
 import fi.dy.masa.servux.network.IPluginServerPlayHandler;
 import fi.dy.masa.servux.network.IServerPayloadData;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxEntitiesHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
 {
-	private static final ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>()
+	@Setter
+	private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>()
 	{
 		@Override
 		public void receive(ServuxEntitiesPacket.@NonNull Payload payload, ServerPlayNetworking.@NotNull Context context)

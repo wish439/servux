@@ -2,6 +2,9 @@ package fi.dy.masa.servux.dataproviders;
 
 import java.util.*;
 import javax.annotation.Nullable;
+
+import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import org.jspecify.annotations.NonNull;
 
 import com.mojang.serialization.DataResult;
@@ -34,7 +37,8 @@ import fi.dy.masa.servux.util.data.tag.util.DataOps;
 
 public class HudDataProvider extends DataProviderBase
 {
-	public static final HudDataProvider INSTANCE = new HudDataProvider();
+	@Setter
+	public static HudDataProvider INSTANCE = new HudDataProvider();
 	protected final static ServuxHudHandler<ServuxHudPacket.Payload> HANDLER = ServuxHudHandler.getInstance();
 	protected final CompoundData metadata = new CompoundData();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -72,7 +76,9 @@ public class HudDataProvider extends DataProviderBase
 	private final HashMap<DataLogger, DataLoggerBase<?>> LOGGERS = new HashMap<>();
 	private final HashMap<DataLogger, CompoundData> DATA = new HashMap<>();
 
-	protected HudDataProvider()
+	private boolean minihudLoaded;
+
+	public HudDataProvider()
 	{
 		super("hud_data",
 		      ServuxHudHandler.CHANNEL_ID,
@@ -94,6 +100,8 @@ public class HudDataProvider extends DataProviderBase
 
 		// Loggers
 		this.checkIfLoggersAreInitialized();
+
+		this.minihudLoaded = FabricLoader.getInstance().isModLoaded(Reference.MINIHUD_MODID);
 	}
 
 	private List<String> getDefaultLoggers()
@@ -133,11 +141,17 @@ public class HudDataProvider extends DataProviderBase
 	{
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-		if (!this.isRegistered())
-		{
-			HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+		if (!this.minihudLoaded) {
+			if (!this.isRegistered())
+			{
+				HANDLER.registerPlayPayload(ServuxHudPacket.Payload.ID, ServuxHudPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+				this.setRegistered(true);
+			}
+		} else {
+			HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
 			this.setRegistered(true);
 		}
+
 
 		HANDLER.registerPlayReceiver(ServuxHudPacket.Payload.ID, HANDLER::receivePlayPayload);
 	}

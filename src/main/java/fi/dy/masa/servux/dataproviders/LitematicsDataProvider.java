@@ -5,6 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import javax.annotation.Nullable;
+
+import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -53,7 +56,8 @@ import fi.dy.masa.servux.util.position.PositionUtils;
 
 public class LitematicsDataProvider extends DataProviderBase
 {
-	public static final LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
+	@Setter
+	public static LitematicsDataProvider INSTANCE = new LitematicsDataProvider();
 	private final static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER = ServuxLitematicaHandler.getInstance();
 	private final CompoundData metadata = new CompoundData();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -76,7 +80,9 @@ public class LitematicsDataProvider extends DataProviderBase
 	private final SchematicBufferManager bufferManager = new SchematicBufferManager();
 	private final Path transmitDir;
 
-	protected LitematicsDataProvider()
+	private boolean litematicaLoaded;
+
+	public LitematicsDataProvider()
 	{
 		super("litematic_data",
 		      ServuxLitematicaHandler.CHANNEL_ID,
@@ -91,6 +97,8 @@ public class LitematicsDataProvider extends DataProviderBase
 
 		// Litematic-Transmit Dir
 		this.transmitDir = this.getTransmitDir();
+
+		this.litematicaLoaded = FabricLoader.getInstance().isModLoaded(Reference.LITEMATICA_MODID);
 	}
 
 	@Override
@@ -104,11 +112,17 @@ public class LitematicsDataProvider extends DataProviderBase
 	{
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-		if (!this.isRegistered())
-		{
-			HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+		if (!this.litematicaLoaded) {
+			if (!this.isRegistered())
+			{
+				HANDLER.registerPlayPayload(ServuxLitematicaPacket.Payload.ID, ServuxLitematicaPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+				this.setRegistered(true);
+			}
+		} else {
+			HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
 			this.setRegistered(true);
 		}
+
 
 		HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
 	}

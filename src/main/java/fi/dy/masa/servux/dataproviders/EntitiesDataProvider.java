@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import fi.dy.masa.servux.network.packet.ServuxTweaksHandler;
+import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,7 +33,8 @@ import fi.dy.masa.servux.util.nbt.NbtView;
 
 public class EntitiesDataProvider extends DataProviderBase
 {
-    public static final EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
+	@Setter
+    public static EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
     private final static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER = ServuxEntitiesHandler.getInstance();
 	private final CompoundData metadata = new CompoundData();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -55,7 +59,9 @@ public class EntitiesDataProvider extends DataProviderBase
 	private final List<UUID> registeredPlayers = new ArrayList<>();
     private final List<UUID> invalidPlayers = new ArrayList<>();
 
-    protected EntitiesDataProvider()
+	private boolean minihudLoaded;
+
+    public EntitiesDataProvider()
     {
         super("entity_data",
                 ServuxEntitiesHandler.CHANNEL_ID,
@@ -67,6 +73,8 @@ public class EntitiesDataProvider extends DataProviderBase
         this.metadata.putString("id", this.getNetworkChannel().toString());
         this.metadata.putInt("version", this.getProtocolVersion());
         this.metadata.putString("servux", Reference.MOD_STRING);
+
+		this.minihudLoaded = FabricLoader.getInstance().isModLoaded(Reference.MINIHUD_MODID);
     }
 
     @Override
@@ -80,11 +88,17 @@ public class EntitiesDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+		if (!this.minihudLoaded) {
+			if (!this.isRegistered())
+			{
+				HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+				this.setRegistered(true);
+			}
+		} else {
+			HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
+			this.setRegistered(true);
+		}
+
 
         HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
     }

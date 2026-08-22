@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Restriction(require = @Condition("tweakeroo"))
 @Mixin(EntityDataManager.class)
 public class TweakerooEntityDataManagerMixin {
-    @WrapOperation(method = "receiveServuxMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/tweakeroo/data/DataManager;hasIntegratedServer()Z"))
+    @WrapOperation(method = "receiveServuxMetadata(Lfi/dy/masa/malilib/util/data/tag/CompoundData;)Z", at = @At(value = "INVOKE", target = "Lfi/dy/masa/tweakeroo/data/DataManager;hasIntegratedServer()Z"))
     private boolean onReceive(DataManager instance, Operation<Boolean> original) {
         return false;
     }

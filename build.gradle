@@ -40,7 +40,7 @@ def getLatestModVersion(String slug, String mcVersion, String loader = "fabric")
 	}
 	def cacheKey = "${slug}_${mcVersion}_${loader}"
 	def cachedVersion = props.getProperty(cacheKey)
-	if (cachedVersion) {
+	if (cachedVersion && false) {
 		project.logger.lifecycle("Using cached version for $slug: $cachedVersion")
 		return cachedVersion
 	}
