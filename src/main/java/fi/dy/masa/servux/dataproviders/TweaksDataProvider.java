@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
+import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
@@ -38,7 +40,8 @@ import fi.dy.masa.servux.util.nbt.NbtView;
 
 public class TweaksDataProvider extends DataProviderBase
 {
-    public static final TweaksDataProvider INSTANCE = new TweaksDataProvider();
+    @Setter
+    public static TweaksDataProvider INSTANCE = new TweaksDataProvider();
 	private final static ServuxTweaksHandler<ServuxTweaksPacket.Payload> HANDLER = ServuxTweaksHandler.getInstance();
     private final CompoundData metadata = new CompoundData();
     private final BoolCallbacks boolCallback = new BoolCallbacks();
@@ -60,7 +63,9 @@ public class TweaksDataProvider extends DataProviderBase
     private final List<UUID> invalidPlayers = new ArrayList<>();
     private boolean configDirty = false;
 
-    protected TweaksDataProvider()
+    private boolean tweakerooLoaded;
+
+    public TweaksDataProvider()
     {
         super("tweaks_data",
                 ServuxTweaksHandler.CHANNEL_ID,
@@ -75,6 +80,8 @@ public class TweaksDataProvider extends DataProviderBase
 
         this.setTickRate(40);
         this.checkTweaksMetadata();
+
+        this.tweakerooLoaded = FabricLoader.getInstance().isModLoaded(Reference.TWEAKEROO_MODID);
     }
 
     @Override
@@ -88,9 +95,14 @@ public class TweaksDataProvider extends DataProviderBase
     {
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+        if (!this.tweakerooLoaded) {
+            if (!this.isRegistered())
+            {
+                HANDLER.registerPlayPayload(ServuxTweaksPacket.Payload.ID, ServuxTweaksPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+                this.setRegistered(true);
+            }
+        } else {
+            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
             this.setRegistered(true);
         }
 

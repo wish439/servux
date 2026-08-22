@@ -10,3 +10,11 @@ build.number
 libs/
 .idea/
 run/
+
+
+testMods
+patches
+
+
+testMods/
+patches/

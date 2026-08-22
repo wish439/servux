@@ -32,6 +32,9 @@ public abstract class MixinBlockItem_EasyPlace extends Item
     @Inject(method = "getPlacementState", at = @At("HEAD"), cancellable = true)
     private void servux_modifyPlacementState(BlockPlaceContext ctx, CallbackInfoReturnable<BlockState> cir)
     {
+        if (ServuxConfigProvider.INSTANCE == null) {
+            return;
+        }
         if (ctx.getPlayer() instanceof ServerPlayer player)
         {
             if (ServuxConfigProvider.INSTANCE.hasPermission_EasyPlace(player) == false)

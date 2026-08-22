@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import lombok.Setter;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -21,7 +22,8 @@ import fi.dy.masa.servux.util.i18n.i18nManager;
 
 public class ServuxConfigProvider extends DataProviderBase
 {
-    public static final ServuxConfigProvider INSTANCE = new ServuxConfigProvider();
+    @Setter
+    public static ServuxConfigProvider INSTANCE = new ServuxConfigProvider();
     public static final i18nManager LANG = i18nManager.create(Reference.MOD_ID);
 
     private final ServuxIntSetting basePermissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
@@ -63,7 +65,7 @@ public class ServuxConfigProvider extends DataProviderBase
             this.defaultLanguage, this.debugLog
     );
 
-    protected ServuxConfigProvider()
+    public ServuxConfigProvider()
     {
         super("servux_main",
                 Identifier.fromNamespaceAndPath("servux", "main"),
