@@ -1,0 +1,973 @@
+Subject: [PATCH] sync upstream
+---
+Index: .gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.gitignore b/.gitignore
+--- a/.gitignore	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/.gitignore	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -10,3 +10,6 @@
+ libs/
+ .idea/
+ run/
++
++patches/
++testMods
+\ No newline at end of file
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/build.gradle	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -21,6 +21,123 @@
+     maven { url = 'https://jitpack.io'
+ 		content { includeGroupAndSubgroups('com.github') }
+ 	}
++	maven {
++		url = "https://api.modrinth.com/maven"
++	}
++}
++
++import groovy.json.JsonSlurper
++
++// 导入必要的类
++
++def getLatestModVersion(String slug, String mcVersion, String loader = "fabric") {
++	// 缓存逻辑保持不变
++	def cacheFile = project.layout.buildDirectory.file("modrinth-cache.properties").get().asFile
++	def props = new Properties()
++	if (cacheFile.exists()) {
++		cacheFile.withInputStream { props.load(it) }
++	}
++	def cacheKey = "${slug}_${mcVersion}_${loader}"
++	def cachedVersion = props.getProperty(cacheKey)
++	if (cachedVersion && false) {
++		project.logger.lifecycle("Using cached version for $slug: $cachedVersion")
++		return cachedVersion
++	}
++
++	// 构建参数 - 注意：game_versions 是 JSON 数组字符串，需要编码
++	def gameVersionsJson = "[\"${mcVersion}\"]"
++	def loadersJson = "[\"${loader}\"]"
++
++	// 对参数值进行 URL 编码
++	def encodedGameVersions = URLEncoder.encode(gameVersionsJson, "UTF-8")
++	def encodedLoaders = URLEncoder.encode(loadersJson, "UTF-8")
++
++	// 拼接 URL
++	def urlStr = "https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodedGameVersions}&loaders=${encodedLoaders}"
++	project.logger.lifecycle("Fetching from: $urlStr")
++
++	try {
++		def connection = new URL(urlStr).openConnection()
++		connection.setRequestProperty("User-Agent", "MyGradleScript/1.0 (contact@example.com)")
++		connection.connect()
++		if (connection.responseCode != 200) {
++			throw new GradleException("API returned ${connection.responseCode} for URL: $urlStr")
++		}
++		def json = new JsonSlurper().parse(connection.inputStream) as List
++		if (json.isEmpty()) {
++			throw new GradleException("No version found for $slug with mc=$mcVersion loader=$loader")
++		}
++
++		// 按版本号排序（Semantic Versioning 比较）
++		def sortedVersions = json.sort { a, b ->
++			def vA = a.version_number.split('\\.')*.toInteger()
++			def vB = b.version_number.split('\\.')*.toInteger()
++			for (int i = 0; i < Math.min(vA.size(), vB.size()); i++) {
++				if (vA[i] != vB[i]) return vB[i] <=> vA[i]
++			}
++			return vB.size() <=> vA.size()
++		}
++
++		def latest = sortedVersions[0].version_number
++		props.setProperty(cacheKey, latest)
++		cacheFile.parentFile.mkdirs()
++		cacheFile.withOutputStream { props.store(it, "Modrinth cache") }
++		project.logger.lifecycle("Resolved $slug -> $latest")
++		return latest
++	} catch (Exception e) {
++		throw new GradleException("Failed to fetch version for $slug (URL: $urlStr)", e)
++	}
++}
++
++String mcVersion = project.findProperty('minecraft_version') ?: "26.3"
++def loader = "fabric"
++
++def modsToDownload = ['minihud', 'malilib', 'litematica']  // 按需修改
++
++tasks.register('downloadMods') {
++	doLast {
++		def targetDir = new File("testMods", mcVersion)
++		targetDir.mkdirs()
++
++		modsToDownload.each { slug ->
++			// 获取最新版本号
++			def version = getLatestModVersion(slug, mcVersion, loader)
++			def gameVersionsJson = "[\"${mcVersion}\"]"
++			def loadersJson = "[\"${loader}\"]"
++			def encodedGameVersions = URLEncoder.encode(gameVersionsJson, "UTF-8")
++			def encodedLoaders = URLEncoder.encode(loadersJson, "UTF-8")
++			// 获取该版本的完整信息（为了拿到 file.url 和 filename）
++			def url = "https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodedGameVersions}&loaders=${encodedLoaders}"
++			def conn = new URL(url).openConnection()
++			conn.setRequestProperty("User-Agent", "GradleScript/1.0")
++			def json = new JsonSlurper().parse(conn.inputStream) as List
++			def versionData = json.find { it.version_number == version }
++			if (!versionData) {
++				project.logger.error("Could not find version $version for $slug, skipping")
++				return
++			}
++			def fileInfo = versionData.files.find { it.primary } ?: versionData.files[0]
++			def fileUrl = fileInfo.url
++			def fileName = fileInfo.filename
++			def outputFile = new File(targetDir, fileName)
++
++			// 检查是否已存在且版本相同（通过文件名判断，或者更精确地比较版本）
++			// 这里简单判断：如果文件存在且文件名包含当前版本号，则跳过
++			if (outputFile.exists() && fileName.contains(version)) {
++				project.logger.lifecycle("$fileName already exists (version $version), skipping download")
++				return
++			}
++
++			project.logger.lifecycle("Downloading $fileName from $fileUrl ...")
++			try {
++				def inputStream = new URL(fileUrl).openStream()
++				outputFile.withOutputStream { it << inputStream }
++				project.logger.lifecycle("Downloaded to ${outputFile.absolutePath}")
++			} catch (Exception e) {
++				project.logger.error("Failed to download $fileName: $e.message")
++			}
++		}
++	}
+ }
+ 
+ dependencies {
+@@ -30,9 +147,17 @@
+ 
+ 	// Fabric API. This is technically optional, but you probably want it anyway.
+ 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
+-	include(implementation(fabricApi.module("fabric-api-base", project.fabric_api_version)))
+-	include(implementation(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+-	include(implementation(fabricApi.module("fabric-permission-api-v1", project.fabric_api_version)))
++	implementation "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
++	localRuntime "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
++	implementation "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
++	localRuntime  "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
++	implementation "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
++	localRuntime  "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
++	implementation "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
++	localRuntime  "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
++
++	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
++	include api("me.fallenbreath:conditional-mixin-fabric:${project.condition_mixin_version}")
+ 
+ 	// Lucko Permissions API
+ //	implementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+Index: gradle.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/gradle.properties b/gradle.properties
+--- a/gradle.properties	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/gradle.properties	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -20,3 +20,5 @@
+ 
+ # Luck Permissions API (https://github.com/lucko/fabric-permissions-api)
+ # fabric_permissions_api_version = 0.7.0
++
++condition_mixin_version = 0.6.4
+\ No newline at end of file
+Index: src/main/java/fi/dy/masa/servux/EventRegistry.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/EventRegistry.java b/src/main/java/fi/dy/masa/servux/EventRegistry.java
+new file mode 100644
+--- /dev/null	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/java/fi/dy/masa/servux/EventRegistry.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -0,0 +1,14 @@
++package fi.dy.masa.servux;
++
++import fi.dy.masa.servux.event.ServerInitHandler;
++import fi.dy.masa.servux.network.packet.*;
++import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
++import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
++
++public class EventRegistry {
++    public static void registerEvents() {
++        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
++            ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
++        });
++    }
++}
+\ No newline at end of file
+Index: src/main/java/fi/dy/masa/servux/Servux.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/Servux.java b/src/main/java/fi/dy/masa/servux/Servux.java
+--- a/src/main/java/fi/dy/masa/servux/Servux.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/Servux.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -1,6 +1,7 @@
+ package fi.dy.masa.servux;
+ 
+ import net.fabricmc.api.ModInitializer;
++import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ import fi.dy.masa.servux.commands.CommandProvider;
+@@ -18,9 +19,12 @@
+     @Override
+     public void onInitialize()
+     {
+-        if (Reference.DEBUG_MODE) { ANSI_LOGGER.debug("DEBUG_MODE: Active"); }
++        if (Reference.DEBUG_MODE) { ANSI_LOGGER.debug("DEBUG_MODE: Active");}
++        EventRegistry.registerEvents();
+         ServerInitHandler.getInstance().registerServerInitHandler(new ServuxInitHandler());
+-        CommandProvider.getInstance().registerCommand(new ServuxCommand());
++        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
++            new ServuxCommand().register(dispatcher, registryAccess, environment);
++        });
+         // Command Manager gets called before the Init Manager onServerInit()
+     }
+ 
+Index: src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -4,6 +4,7 @@
+ import java.util.List;
+ import java.util.UUID;
+ 
++import net.fabricmc.loader.api.FabricLoader;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -78,6 +79,13 @@
+     @Override
+     public void registerHandler()
+     {
++		if (FabricLoader.getInstance().isModLoaded("minihud")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			this.setRegistered(true);
++			HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
++			HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+         if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -2,6 +2,8 @@
+ 
+ import java.util.*;
+ import javax.annotation.Nullable;
++
++import net.fabricmc.loader.api.FabricLoader;
+ import org.jspecify.annotations.NonNull;
+ 
+ import com.mojang.serialization.DataResult;
+@@ -131,6 +133,13 @@
+ 	@Override
+ 	public void registerHandler()
+ 	{
++		if (FabricLoader.getInstance().isModLoaded("minihud")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			this.setRegistered(true);
++			HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
++			HANDLER.registerPlayReceiver(ServuxHudPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+ 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+ 		if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -5,6 +5,8 @@
+ import java.nio.file.Path;
+ import java.util.*;
+ import javax.annotation.Nullable;
++
++import net.fabricmc.loader.api.FabricLoader;
+ import org.apache.commons.lang3.tuple.Pair;
+ import org.jetbrains.annotations.ApiStatus;
+ 
+@@ -114,6 +116,13 @@
+ 	@Override
+ 	public void registerHandler()
+ 	{
++		if (FabricLoader.getInstance().isModLoaded("litematica")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
++			this.setRegistered(true);
++			HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+ 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+ 		if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -6,6 +6,7 @@
+ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ 
++import net.fabricmc.loader.api.FabricLoader;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.MinecraftServer;
+@@ -89,6 +90,13 @@
+ 	@Override
+ 	public void registerHandler()
+ 	{
++		if (FabricLoader.getInstance().isModLoaded("minihud")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
++			this.setRegistered(true);
++			HANDLER.registerPlayReceiver(ServuxStructuresPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+ 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+ 		if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -5,6 +5,7 @@
+ import java.util.UUID;
+ import javax.annotation.Nullable;
+ 
++import net.fabricmc.loader.api.FabricLoader;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.resources.Identifier;
+@@ -86,6 +87,13 @@
+     @Override
+     public void registerHandler()
+     {
++        if (FabricLoader.getInstance().isModLoaded("tweakeroo")) {
++            ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
++            this.setRegistered(true);
++            HANDLER.registerPlayReceiver(ServuxTweaksPacket.Payload.ID, HANDLER::receivePlayPayload);
++            return;
++        }
+         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+         if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/mixin/compat/litematica/LitematicaEntitiesDataStorageMixin.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/compat/litematica/LitematicaEntitiesDataStorageMixin.java b/src/main/java/fi/dy/masa/servux/mixin/compat/litematica/LitematicaEntitiesDataStorageMixin.java
+new file mode 100644
+--- /dev/null	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/java/fi/dy/masa/servux/mixin/compat/litematica/LitematicaEntitiesDataStorageMixin.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -0,0 +1,55 @@
++package fi.dy.masa.servux.mixin.compat.litematica;
++
++import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
++import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
++import fi.dy.masa.litematica.data.DataManager;
++import fi.dy.masa.litematica.data.EntityDataManager;
++import fi.dy.masa.litematica.network.ServuxLitematicaHandler;
++import fi.dy.masa.malilib.network.IPluginClientPlayHandler;
++import fi.dy.masa.servux.network.packet.ServuxLitematicaPacket;
++import me.fallenbreath.conditionalmixin.api.annotation.Condition;
++import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
++import org.spongepowered.asm.mixin.Final;
++import org.spongepowered.asm.mixin.Mixin;
++import org.spongepowered.asm.mixin.Shadow;
++import org.spongepowered.asm.mixin.injection.At;
++
++@Restriction(require = @Condition("litematica"))
++@Mixin(value = EntityDataManager.class, remap = false)
++public class LitematicaEntitiesDataStorageMixin {
++    @Shadow @Final
++    private static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> HANDLER;
++
++    @WrapOperation(method = "receiveServuxMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/litematica/data/DataManager;hasIntegratedServer()Z"))
++    private boolean hasIntegratedServer(DataManager instance, Operation<Boolean> original) {
++        return false;
++    }
++
++    @SuppressWarnings({"unchecked", "rawtypes"})
++    @WrapOperation(method = "onGameInit", at = @At(value = "INVOKE", target = "Lfi/dy/masa/litematica/network/ServuxLitematicaHandler;registerPlayPayload(Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;I)V"))
++    private void onGameInit(ServuxLitematicaHandler instance, CustomPacketPayload.Type type, StreamCodec streamCodec, int i, Operation<Void> original) {
++        StreamCodec<FriendlyByteBuf, ServuxLitematicaPacket.Payload> servuxCodec = ServuxLitematicaPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, fi.dy.masa.litematica.network.ServuxLitematicaPacket.Payload> litematicaCodec = fi.dy.masa.litematica.network.ServuxLitematicaPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, Object> codec = StreamCodec.of(
++                (buf, value) -> {
++                    if (value instanceof ServuxLitematicaPacket.Payload p) {
++                        servuxCodec.encode(buf, p);
++                    } else if (value instanceof fi.dy.masa.litematica.network.ServuxLitematicaPacket.Payload p) {
++                        litematicaCodec.encode(buf, p);
++                    }
++                },
++                buf -> {
++                    buf.markReaderIndex();
++                    int varInt = buf.readVarInt();
++                    buf.resetReaderIndex();
++                    return switch (varInt) {
++                        case 1, 5, 6, 10, 11 -> litematicaCodec.decode(buf);
++                        default -> servuxCodec.decode(buf);
++                    };
++                });
++        instance.registerPlayPayload(type, codec, IPluginClientPlayHandler.BOTH_CLIENT);
++    }
++}
+Index: src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudDataStorageMixin.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudDataStorageMixin.java b/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudDataStorageMixin.java
+new file mode 100644
+--- /dev/null	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudDataStorageMixin.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -0,0 +1,54 @@
++package fi.dy.masa.servux.mixin.compat.minihud;
++
++import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
++import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
++import fi.dy.masa.malilib.network.IPluginClientPlayHandler;
++import fi.dy.masa.minihud.network.ServuxStructuresHandler;
++import fi.dy.masa.minihud.util.DataStorage;
++import fi.dy.masa.servux.network.packet.ServuxStructuresPacket;
++import me.fallenbreath.conditionalmixin.api.annotation.Condition;
++import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
++import org.spongepowered.asm.mixin.Final;
++import org.spongepowered.asm.mixin.Mixin;
++import org.spongepowered.asm.mixin.Shadow;
++import org.spongepowered.asm.mixin.injection.At;
++
++@Restriction(require = @Condition("minihud"))
++@Mixin(DataStorage.class)
++public class MiniHudDataStorageMixin {
++    @Shadow @Final
++    private static ServuxStructuresHandler<ServuxStructuresPacket.Payload> HANDLER;
++
++    @WrapOperation(method = "receiveServuxStrucutresMetadata", at = @At(value = "FIELD", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer:Z"))
++    private boolean onReceive(DataStorage instance, Operation<Boolean> original) {
++        return false;
++    }
++
++    @SuppressWarnings({"unchecked", "rawtypes"})
++    @WrapOperation(method = "onGameInit", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/network/ServuxStructuresHandler;registerPlayPayload(Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;I)V"))
++    private void onGameInit(ServuxStructuresHandler instance, CustomPacketPayload.Type type, StreamCodec streamCodec, int i, Operation<Void> original) {
++        StreamCodec<FriendlyByteBuf, ServuxStructuresPacket.Payload> servuxCodec = ServuxStructuresPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, fi.dy.masa.minihud.network.ServuxStructuresPacket.Payload> minihudCodec = fi.dy.masa.minihud.network.ServuxStructuresPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, Object> codec = StreamCodec.of(
++                (buf, value) -> {
++                    if (value instanceof ServuxStructuresPacket.Payload p) {
++                        servuxCodec.encode(buf, p);
++                    } else if (value instanceof fi.dy.masa.minihud.network.ServuxStructuresPacket.Payload p) {
++                        minihudCodec.encode(buf, p);
++                    }
++                },
++                buf -> {
++                    buf.markReaderIndex();
++                    int varInt = buf.readVarInt();
++                    buf.resetReaderIndex();
++                    return switch (varInt) {
++                        case 1, 2, 5, 10, 12 -> minihudCodec.decode(buf);
++                        default -> servuxCodec.decode(buf);
++                    };
++                });
++        instance.registerPlayPayload(type, codec, IPluginClientPlayHandler.BOTH_CLIENT);
++    }
++}
+Index: src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudEntitiesDataManagerMixin.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudEntitiesDataManagerMixin.java b/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudEntitiesDataManagerMixin.java
+new file mode 100644
+--- /dev/null	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudEntitiesDataManagerMixin.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -0,0 +1,55 @@
++package fi.dy.masa.servux.mixin.compat.minihud;
++
++import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
++import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
++import fi.dy.masa.malilib.network.IPluginClientPlayHandler;
++import fi.dy.masa.minihud.data.EntityDataManager;
++import fi.dy.masa.minihud.network.ServuxEntitiesHandler;
++import fi.dy.masa.minihud.util.DataStorage;
++import fi.dy.masa.servux.network.packet.ServuxEntitiesPacket;
++import me.fallenbreath.conditionalmixin.api.annotation.Condition;
++import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
++import org.spongepowered.asm.mixin.Final;
++import org.spongepowered.asm.mixin.Mixin;
++import org.spongepowered.asm.mixin.Shadow;
++import org.spongepowered.asm.mixin.injection.At;
++
++@Restriction(require = @Condition("minihud"))
++@Mixin(EntityDataManager.class)
++public class MiniHudEntitiesDataManagerMixin {
++    @Shadow @Final
++    private static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER;
++
++    @WrapOperation(method = "receiveServuxMetadata(Lfi/dy/masa/malilib/util/data/tag/CompoundData;)Z", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer()Z"))
++    private boolean hasIntegratedServer(DataStorage instance, Operation<Boolean> original) {
++        return false;
++    }
++
++    @SuppressWarnings({"unchecked", "rawtypes"})
++    @WrapOperation(method = "onGameInit", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/network/ServuxEntitiesHandler;registerPlayPayload(Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;I)V"))
++    private void onGameInit(ServuxEntitiesHandler instance, CustomPacketPayload.Type type, StreamCodec streamCodec, int i, Operation<Void> original) {
++        StreamCodec<FriendlyByteBuf, ServuxEntitiesPacket.Payload> servuxCodec = ServuxEntitiesPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, fi.dy.masa.minihud.network.ServuxEntitiesPacket.Payload> minihudCodec = fi.dy.masa.minihud.network.ServuxEntitiesPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, Object> codec = StreamCodec.of(
++                (buf, value) -> {
++                    if (value instanceof ServuxEntitiesPacket.Payload p) {
++                        servuxCodec.encode(buf, p);
++                    } else if (value instanceof fi.dy.masa.minihud.network.ServuxEntitiesPacket.Payload p) {
++                        minihudCodec.encode(buf, p);
++                    }
++                },
++                buf -> {
++                    buf.markReaderIndex();
++                    int varInt = buf.readVarInt();
++                    buf.resetReaderIndex();
++                    return switch (varInt) {
++                        case 1, 5, 6, 10, 11 -> minihudCodec.decode(buf);
++                        default -> servuxCodec.decode(buf);
++                    };
++                });
++        instance.registerPlayPayload(type, codec, IPluginClientPlayHandler.BOTH_CLIENT);
++    }
++}
+Index: src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudHudDataManagerMixin.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudHudDataManagerMixin.java b/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudHudDataManagerMixin.java
+new file mode 100644
+--- /dev/null	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/java/fi/dy/masa/servux/mixin/compat/minihud/MiniHudHudDataManagerMixin.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -0,0 +1,50 @@
++package fi.dy.masa.servux.mixin.compat.minihud;
++
++import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
++import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
++import fi.dy.masa.malilib.network.IPluginClientPlayHandler;
++import fi.dy.masa.minihud.data.HudDataManager;
++import fi.dy.masa.minihud.network.ServuxHudHandler;
++import fi.dy.masa.minihud.network.ServuxHudPacket;
++import fi.dy.masa.minihud.util.DataStorage;
++import me.fallenbreath.conditionalmixin.api.annotation.Condition;
++import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
++import org.spongepowered.asm.mixin.Mixin;
++import org.spongepowered.asm.mixin.injection.At;
++
++@Restriction(require = @Condition("minihud"))
++@Mixin(HudDataManager.class)
++public class MiniHudHudDataManagerMixin {
++    @WrapOperation(method = "receiveMetadata", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/util/DataStorage;hasIntegratedServer()Z"))
++    private boolean hasIntegratedServer(DataStorage instance, Operation<Boolean> original) {
++        return false;
++    }
++
++    @SuppressWarnings({"unchecked", "rawtypes"})
++    @WrapOperation(method = "onGameInit", at = @At(value = "INVOKE", target = "Lfi/dy/masa/minihud/network/ServuxHudHandler;registerPlayPayload(Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;I)V"))
++    private void onGameInit(ServuxHudHandler instance, CustomPacketPayload.Type type, StreamCodec streamCodec, int i, Operation<Void> original) {
++        StreamCodec<FriendlyByteBuf, fi.dy.masa.servux.network.packet.ServuxHudPacket.Payload> servuxCodec = fi.dy.masa.servux.network.packet.ServuxHudPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, ServuxHudPacket.Payload> minihudCodec = ServuxHudPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, Object> codec = StreamCodec.of(
++                (buf, value) -> {
++                    if (value instanceof fi.dy.masa.servux.network.packet.ServuxHudPacket.Payload p) {
++                        servuxCodec.encode(buf, p);
++                    } else if (value instanceof ServuxHudPacket.Payload p) {
++                        minihudCodec.encode(buf, p);
++                    }
++                },
++                buf -> {
++                    buf.markReaderIndex();
++                    int varInt = buf.readVarInt();
++                    buf.resetReaderIndex();
++                    return switch (varInt) {
++                        case 1, 3, 5, 7, 10, 11 -> minihudCodec.decode(buf);
++                        default -> servuxCodec.decode(buf);
++                    };
++                });
++        instance.registerPlayPayload(type, codec, IPluginClientPlayHandler.BOTH_CLIENT);
++    }
++}
+Index: src/main/java/fi/dy/masa/servux/mixin/compat/tweakeroo/TweakerooEntityDataManagerMixin.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/compat/tweakeroo/TweakerooEntityDataManagerMixin.java b/src/main/java/fi/dy/masa/servux/mixin/compat/tweakeroo/TweakerooEntityDataManagerMixin.java
+new file mode 100644
+--- /dev/null	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/java/fi/dy/masa/servux/mixin/compat/tweakeroo/TweakerooEntityDataManagerMixin.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -0,0 +1,50 @@
++package fi.dy.masa.servux.mixin.compat.tweakeroo;
++
++import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
++import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
++import fi.dy.masa.malilib.network.IPluginClientPlayHandler;
++import fi.dy.masa.servux.network.packet.ServuxTweaksPacket;
++import fi.dy.masa.tweakeroo.data.DataManager;
++import fi.dy.masa.tweakeroo.data.EntityDataManager;
++import fi.dy.masa.tweakeroo.network.ServuxTweaksHandler;
++import me.fallenbreath.conditionalmixin.api.annotation.Condition;
++import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
++import org.spongepowered.asm.mixin.Mixin;
++import org.spongepowered.asm.mixin.injection.At;
++
++@Restriction(require = @Condition("tweakeroo"))
++@Mixin(EntityDataManager.class)
++public class TweakerooEntityDataManagerMixin {
++    @WrapOperation(method = "receiveServuxMetadata(Lfi/dy/masa/malilib/util/data/tag/CompoundData;)Z", at = @At(value = "INVOKE", target = "Lfi/dy/masa/tweakeroo/data/DataManager;hasIntegratedServer()Z"))
++    private boolean onReceive(DataManager instance, Operation<Boolean> original) {
++        return false;
++    }
++
++    @SuppressWarnings({"unchecked", "rawtypes"})
++    @WrapOperation(method = "onGameInit", at = @At(value = "INVOKE", target = "Lfi/dy/masa/tweakeroo/network/ServuxTweaksHandler;registerPlayPayload(Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;I)V"))
++    private void onGameInit(ServuxTweaksHandler instance, CustomPacketPayload.Type type, StreamCodec streamCodec, int i, Operation<Void> original) {
++        StreamCodec<FriendlyByteBuf, ServuxTweaksPacket.Payload> servuxCodec = ServuxTweaksPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, fi.dy.masa.tweakeroo.network.ServuxTweaksPacket.Payload> tweakerooCodec = fi.dy.masa.tweakeroo.network.ServuxTweaksPacket.Payload.CODEC;
++        StreamCodec<FriendlyByteBuf, Object> codec = StreamCodec.of(
++                (buf, value) -> {
++                    if (value instanceof ServuxTweaksPacket.Payload p) {
++                        servuxCodec.encode(buf, p);
++                    } else if (value instanceof fi.dy.masa.tweakeroo.network.ServuxTweaksPacket.Payload p) {
++                        tweakerooCodec.encode(buf, p);
++                    }
++                },
++                buf -> {
++                    buf.markReaderIndex();
++                    int varInt = buf.readVarInt();
++                    buf.resetReaderIndex();
++                    return switch (varInt) {
++                        case 1, 5, 6, 10, 11 -> tweakerooCodec.decode(buf);
++                        default -> servuxCodec.decode(buf);
++                    };
++                });
++        instance.registerPlayPayload(type, codec, IPluginClientPlayHandler.BOTH_CLIENT);
++    }
++}
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -11,8 +11,6 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+-import net.fabricmc.api.EnvType;
+-import net.fabricmc.api.Environment;
+ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+ 
+ import fi.dy.masa.servux.Reference;
+@@ -21,7 +19,6 @@
+ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
+ import fi.dy.masa.servux.network.IServerPayloadData;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxEntitiesHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -12,8 +12,6 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+-import net.fabricmc.api.EnvType;
+-import net.fabricmc.api.Environment;
+ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+ 
+ import fi.dy.masa.servux.Reference;
+@@ -24,7 +22,6 @@
+ import fi.dy.masa.servux.network.PacketSplitter;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxHudHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -14,8 +14,6 @@
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.Util;
+-import net.fabricmc.api.EnvType;
+-import net.fabricmc.api.Environment;
+ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+ 
+ import fi.dy.masa.servux.Reference;
+@@ -29,7 +27,6 @@
+ import fi.dy.masa.servux.util.data.tag.CompoundData;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxLitematicaHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE = new ServuxLitematicaHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -12,8 +12,6 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+-import net.fabricmc.api.EnvType;
+-import net.fabricmc.api.Environment;
+ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+ 
+ import fi.dy.masa.servux.Reference;
+@@ -24,7 +22,6 @@
+ import fi.dy.masa.servux.network.PacketSplitter;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxStructuresHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE = new ServuxStructuresHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -12,8 +12,6 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+-import net.fabricmc.api.EnvType;
+-import net.fabricmc.api.Environment;
+ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+ 
+ import fi.dy.masa.servux.Reference;
+@@ -24,7 +22,6 @@
+ import fi.dy.masa.servux.network.PacketSplitter;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxTweaksHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxTweaksHandler<ServuxTweaksPacket.Payload> INSTANCE = new ServuxTweaksHandler<>()
+Index: src/main/resources/fabric.mod.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+--- a/src/main/resources/fabric.mod.json	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/resources/fabric.mod.json	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -20,7 +20,7 @@
+     "license": "LGPLv3",
+     "icon": "assets/servux/icon.png",
+ 
+-	"environment": "server",
++	"environment": "*",
+ 	"entrypoints": {
+ 		"main": [
+ 			"fi.dy.masa.servux.Servux"
+Index: src/main/resources/mixins.servux.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/mixins.servux.json b/src/main/resources/mixins.servux.json
+--- a/src/main/resources/mixins.servux.json	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ b/src/main/resources/mixins.servux.json	(revision 60a209041c3120f102da0de74b779027fc8882d4)
+@@ -1,37 +1,41 @@
+ {
+-    "required": true,
+-    "package": "fi.dy.masa.servux.mixin",
+-    "compatibilityLevel": "JAVA_25",
+-    "minVersion": "0.8",
+-    "mixins": [
+-        "block.MixinBlock_updateSuppression",
+-        "block.MixinChestBlock",
+-        "block.MixinHopperBlockEntity",
+-        "block.MixinRailBlocks",
+-        "block.MixinStairBlock",
+-        "debug.MixinSharedConstants",
+-        "entity.MixinAllay",
+-        "entity.MixinItemEntity",
+-        "entity.MixinMob",
+-        "item.IMixinItemInstance",
+-        "easy_place.MixinBlockItem_EasyPlace",
+-        "nbt.IMixinTagValueInput",
+-        "nbt.IMixinTagValueOutput",
+-        "easy_place.MixinServerGamePacketListenerImpl_easyPlace",
+-        "network.MixinServerGamePacketListenerImpl_queryNbt",
+-        "server.IMixinServerTickRateManager",
+-        "server.MixinCommands",
+-        "server.MixinDedicatedServer",
+-        "server.MixinMain",
+-        "server.MixinMinecraftServer",
+-        "server.MixinPlayerList",
+-        "world.IMixinLevelTicks",
+-        "world.MixinChunkMap",
+-        "world.MixinLevel_updateSuppression",
+-        "world.MixinLevelChunk_updateSuppression",
+-        "world.MixinServerLevel"
+-    ],
+-    "injectors": {
+-        "defaultRequire": 1
++  "required": true,
++  "package": "fi.dy.masa.servux.mixin",
++  "compatibilityLevel": "JAVA_25",
++  "minVersion": "0.8",
++  "mixins": [
++    "block.MixinBlock_updateSuppression",
++    "block.MixinChestBlock",
++    "block.MixinHopperBlockEntity",
++    "block.MixinRailBlocks",
++    "block.MixinStairBlock",
++    "compat.litematica.LitematicaEntitiesDataStorageMixin",
++    "compat.minihud.MiniHudDataStorageMixin",
++    "compat.minihud.MiniHudEntitiesDataManagerMixin",
++    "compat.minihud.MiniHudHudDataManagerMixin",
++    "compat.tweakeroo.TweakerooEntityDataManagerMixin",
++    "debug.MixinSharedConstants",
++    "easy_place.MixinBlockItem_EasyPlace",
++    "easy_place.MixinServerGamePacketListenerImpl_easyPlace",
++    "entity.MixinAllay",
++    "entity.MixinItemEntity",
++    "entity.MixinMob",
++    "item.IMixinItemInstance",
++    "nbt.IMixinTagValueInput",
++    "nbt.IMixinTagValueOutput",
++    "network.MixinServerGamePacketListenerImpl_queryNbt",
++    "server.IMixinServerTickRateManager",
++    "server.MixinCommands",
++    "server.MixinMain",
++    "server.MixinMinecraftServer",
++    "server.MixinPlayerList",
++    "world.IMixinLevelTicks",
++    "world.MixinChunkMap",
++    "world.MixinLevel_updateSuppression",
++    "world.MixinLevelChunk_updateSuppression",
++    "world.MixinServerLevel"
++  ],
++  "injectors": {
++    "defaultRequire": 1
+   }
+ }
+Index: src/main/java/fi/dy/masa/servux/mixin/server/MixinDedicatedServer.java
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/server/MixinDedicatedServer.java b/src/main/java/fi/dy/masa/servux/mixin/server/MixinDedicatedServer.java
+deleted file mode 100644
+--- a/src/main/java/fi/dy/masa/servux/mixin/server/MixinDedicatedServer.java	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
++++ /dev/null	(revision 57834cc5add156cfec07ef5ab72e03fa771a953d)
+@@ -1,32 +0,0 @@
+-package fi.dy.masa.servux.mixin.server;
+-
+-import java.util.Optional;
+-
+-import com.mojang.datafixers.DataFixer;
+-import fi.dy.masa.servux.event.ServerInitHandler;
+-import net.minecraft.server.Services;
+-import net.minecraft.server.WorldStem;
+-import net.minecraft.server.dedicated.DedicatedServer;
+-import net.minecraft.server.dedicated.DedicatedServerSettings;
+-import net.minecraft.server.jsonrpc.ManagementServer;
+-import net.minecraft.server.notifications.NotificationManager;
+-import net.minecraft.server.packs.repository.PackRepository;
+-import net.minecraft.world.level.gamerules.GameRules;
+-import net.minecraft.world.level.storage.LevelStorageSource;
+-import org.spongepowered.asm.mixin.Mixin;
+-import org.spongepowered.asm.mixin.injection.At;
+-import org.spongepowered.asm.mixin.injection.Inject;
+-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+-
+-@Mixin(DedicatedServer.class)
+-public class MixinDedicatedServer
+-{
+-    @Inject(method = "<init>", at = @At("TAIL"))
+-    private void servux_DedicatedServerInit(Thread serverThread, LevelStorageSource.LevelStorageAccess levelStorageSource,
+-                                            PackRepository packRepository, WorldStem worldStem, Optional<GameRules> gameRules,
+-                                            DedicatedServerSettings settings, DataFixer fixerUpper, Services services,
+-                                            ManagementServer jsonRpcServer, NotificationManager notificationManager, CallbackInfo ci)
+-    {
+-        ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
+-    }
+-}

@@ -1,0 +1,51 @@
+Subject: [PATCH] sync upstream
+---
+Index: src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java b/src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java
+new file mode 100644
+--- /dev/null	(revision 4ebfb05e7920f2e1d9cde34eef46d175c89ee3b8)
++++ b/src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java	(revision 4ebfb05e7920f2e1d9cde34eef46d175c89ee3b8)
+@@ -0,0 +1,22 @@
++package fi.dy.masa.servux;
++
++import me.fallenbreath.conditionalmixin.api.mixin.RestrictiveMixinConfigPlugin;
++
++import java.util.List;
++import java.util.Set;
++
++public class ConditionalMixinCompat extends RestrictiveMixinConfigPlugin {
++    @Override
++    public String getRefMapperConfig() {
++        return null;
++    }
++
++    @Override
++    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {
++    }
++
++    @Override
++    public List<String> getMixins() {
++        return List.of();
++    }
++}
+\ No newline at end of file
+Index: src/main/resources/mixins.servux.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/mixins.servux.json b/src/main/resources/mixins.servux.json
+--- a/src/main/resources/mixins.servux.json	(revision 60a209041c3120f102da0de74b779027fc8882d4)
++++ b/src/main/resources/mixins.servux.json	(revision 4ebfb05e7920f2e1d9cde34eef46d175c89ee3b8)
+@@ -37,5 +37,6 @@
+   ],
+   "injectors": {
+     "defaultRequire": 1
+-  }
++  },
++  "plugin": "fi.dy.masa.servux.ConditionalMixinCompat"
+ }
