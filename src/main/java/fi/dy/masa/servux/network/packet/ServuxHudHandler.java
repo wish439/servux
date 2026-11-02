@@ -12,8 +12,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 import fi.dy.masa.servux.Reference;
@@ -24,7 +22,6 @@ import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxHudHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
 {
 	private static final ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>()

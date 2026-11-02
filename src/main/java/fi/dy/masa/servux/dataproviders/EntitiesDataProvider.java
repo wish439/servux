@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -78,6 +79,13 @@ public class EntitiesDataProvider extends DataProviderBase
     @Override
     public void registerHandler()
     {
+		if (FabricLoader.getInstance().isModLoaded("minihud")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			this.setRegistered(true);
+			HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
+			HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
         if (!this.isRegistered())

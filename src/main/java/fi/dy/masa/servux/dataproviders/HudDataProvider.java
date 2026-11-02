@@ -2,6 +2,8 @@ package fi.dy.masa.servux.dataproviders;
 
 import java.util.*;
 import javax.annotation.Nullable;
+
+import net.fabricmc.loader.api.FabricLoader;
 import org.jspecify.annotations.NonNull;
 
 import com.mojang.serialization.DataResult;
@@ -131,6 +133,13 @@ public class HudDataProvider extends DataProviderBase
 	@Override
 	public void registerHandler()
 	{
+		if (FabricLoader.getInstance().isModLoaded("minihud")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			this.setRegistered(true);
+			HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
+			HANDLER.registerPlayReceiver(ServuxHudPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
 		if (!this.isRegistered())
