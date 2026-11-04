@@ -17,6 +17,75 @@ repositories {
     maven { url = 'https://jitpack.io'
 		content { includeGroupAndSubgroups('com.github') }
 	}
+	maven {
+		url = "https://api.modrinth.com/maven"
+	}
+}
+
+import groovy.json.JsonSlurper
+
+String mcVersion = project.findProperty('minecraft_version') ?: "26.3"
+def loader = "fabric"
+
+// 导入必要的类
+
+def getLatestModVersion(String slug, String mcVersion, String loader = "fabric") {
+	// 缓存逻辑保持不变
+	def cacheFile = project.layout.buildDirectory.file("modrinth-cache.properties").get().asFile
+	def props = new Properties()
+	if (cacheFile.exists()) {
+		cacheFile.withInputStream { props.load(it) }
+	}
+	def cacheKey = "${slug}_${mcVersion}_${loader}"
+	def cachedVersion = props.getProperty(cacheKey)
+	if (cachedVersion && false) {
+		project.logger.lifecycle("Using cached version for $slug: $cachedVersion")
+		return cachedVersion
+	}
+
+	// 构建参数 - 注意：game_versions 是 JSON 数组字符串，需要编码
+	def gameVersionsJson = "[\"${mcVersion}\"]"
+	def loadersJson = "[\"${loader}\"]"
+
+	// 对参数值进行 URL 编码
+	def encodedGameVersions = URLEncoder.encode(gameVersionsJson, "UTF-8")
+	def encodedLoaders = URLEncoder.encode(loadersJson, "UTF-8")
+
+	// 拼接 URL
+	def urlStr = "https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodedGameVersions}&loaders=${encodedLoaders}"
+	project.logger.lifecycle("Fetching from: $urlStr")
+
+	try {
+		def connection = new URL(urlStr).openConnection()
+		connection.setRequestProperty("User-Agent", "MyGradleScript/1.0 (contact@example.com)")
+		connection.connect()
+		if (connection.responseCode != 200) {
+			throw new GradleException("API returned ${connection.responseCode} for URL: $urlStr")
+		}
+		def json = new JsonSlurper().parse(connection.inputStream) as List
+		if (json.isEmpty()) {
+			throw new GradleException("No version found for $slug with mc=$mcVersion loader=$loader")
+		}
+
+		// 按版本号排序（Semantic Versioning 比较）
+		def sortedVersions = json.sort { a, b ->
+			def vA = a.version_number.split('\\.')*.toInteger()
+			def vB = b.version_number.split('\\.')*.toInteger()
+			for (int i = 0; i < Math.min(vA.size(), vB.size()); i++) {
+				if (vA[i] != vB[i]) return vB[i] <=> vA[i]
+			}
+			return vB.size() <=> vA.size()
+		}
+
+		def latest = sortedVersions[0].version_number
+		props.setProperty(cacheKey, latest)
+		cacheFile.parentFile.mkdirs()
+		cacheFile.withOutputStream { props.store(it, "Modrinth cache") }
+		project.logger.lifecycle("Resolved $slug -> $latest")
+		return latest
+	} catch (Exception e) {
+		throw new GradleException("Failed to fetch version for $slug (URL: $urlStr)", e)
+	}
 }
 
 dependencies {
@@ -27,9 +96,17 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
-	include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
-	include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
+	modImplementation "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
+	modLocalRuntime "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
+	modImplementation "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
+	modLocalRuntime  "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
+	modImplementation "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
+	modLocalRuntime  "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
+	modImplementation "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
+	modLocalRuntime  "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
 
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	include api("me.fallenbreath:conditional-mixin-fabric:${project.conditional_mixin_version}")
 	// Lucko Permissions API
 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
 //	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
