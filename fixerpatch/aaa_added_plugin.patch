@@ -1,0 +1,18 @@
+Subject: [PATCH] aaa added plugin
+---
+Index: src/main/resources/mixins.servux.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/mixins.servux.json b/src/main/resources/mixins.servux.json
+--- a/src/main/resources/mixins.servux.json	(revision c52fe14b2f333dd82bc66a7dc57b1a648688b0ca)
++++ b/src/main/resources/mixins.servux.json	(revision 32bbb38404b80fc646d69a7f4fdbc43fb8460f40)
+@@ -37,5 +37,6 @@
+   ],
+   "injectors": {
+     "defaultRequire": 1
+-  }
++  },
++  "plugin": "fi.dy.masa.servux.ConditionalMixinCompat"
+ }
