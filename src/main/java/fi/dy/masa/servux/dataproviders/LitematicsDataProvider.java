@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import javax.annotation.Nullable;
+
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -106,6 +108,13 @@ public class LitematicsDataProvider extends DataProviderBase
 	@Override
 	public void registerHandler()
 	{
+		if (FabricLoader.getInstance().isModLoaded("litematica")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
+			this.setRegistered(true);
+			HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
 		if (!this.isRegistered())

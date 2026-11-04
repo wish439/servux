@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
@@ -84,6 +85,13 @@ public class TweaksDataProvider extends DataProviderBase
     @Override
     public void registerHandler()
     {
+        if (FabricLoader.getInstance().isModLoaded("tweakeroo")) {
+            ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
+            this.setRegistered(true);
+            HANDLER.registerPlayReceiver(ServuxTweaksPacket.Payload.ID, HANDLER::receivePlayPayload);
+            return;
+        }
         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
         if (!this.isRegistered())

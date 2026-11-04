@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -88,6 +89,13 @@ public class StructureDataProvider extends DataProviderBase
 	@Override
 	public void registerHandler()
 	{
+		if (FabricLoader.getInstance().isModLoaded("minihud")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
+			this.setRegistered(true);
+			HANDLER.registerPlayReceiver(ServuxStructuresPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
 		if (!this.isRegistered())
