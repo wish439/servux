@@ -1,0 +1,124 @@
+Subject: [PATCH] stop register with masa
+---
+Index: src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/HudDataProvider.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
+@@ -2,6 +2,8 @@
+ 
+ import java.util.*;
+ import javax.annotation.Nullable;
++
++import net.fabricmc.loader.api.FabricLoader;
+ import org.jspecify.annotations.NonNull;
+ 
+ import com.mojang.serialization.DataResult;
+@@ -131,6 +133,13 @@
+ 	@Override
+ 	public void registerHandler()
+ 	{
++		if (FabricLoader.getInstance().isModLoaded("minihud")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			this.setRegistered(true);
++			HANDLER.setPlayRegistered(ServuxHudHandler.CHANNEL_ID);
++			HANDLER.registerPlayReceiver(ServuxHudPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+ 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+ 		if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/LitematicsDataProvider.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
+@@ -5,6 +5,8 @@
+ import java.nio.file.Path;
+ import java.util.*;
+ import javax.annotation.Nullable;
++
++import net.fabricmc.loader.api.FabricLoader;
+ import org.apache.commons.lang3.tuple.Pair;
+ import org.jetbrains.annotations.ApiStatus;
+ 
+@@ -106,6 +108,13 @@
+ 	@Override
+ 	public void registerHandler()
+ 	{
++		if (FabricLoader.getInstance().isModLoaded("litematica")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
++			this.setRegistered(true);
++			HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+ 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+ 		if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/StructureDataProvider.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
+@@ -6,6 +6,7 @@
+ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import me.lucko.fabric.api.permissions.v0.Permissions;
++import net.fabricmc.loader.api.FabricLoader;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.MinecraftServer;
+@@ -88,6 +89,13 @@
+ 	@Override
+ 	public void registerHandler()
+ 	{
++		if (FabricLoader.getInstance().isModLoaded("minihud")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
++			this.setRegistered(true);
++			HANDLER.registerPlayReceiver(ServuxStructuresPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+ 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+ 		if (!this.isRegistered())
+Index: src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/TweaksDataProvider.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
+@@ -5,6 +5,7 @@
+ import java.util.UUID;
+ import javax.annotation.Nullable;
+ 
++import net.fabricmc.loader.api.FabricLoader;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.resources.Identifier;
+@@ -84,6 +85,13 @@
+     @Override
+     public void registerHandler()
+     {
++        if (FabricLoader.getInstance().isModLoaded("tweakeroo")) {
++            ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++            HANDLER.setPlayRegistered(ServuxTweaksHandler.CHANNEL_ID);
++            this.setRegistered(true);
++            HANDLER.registerPlayReceiver(ServuxTweaksPacket.Payload.ID, HANDLER::receivePlayPayload);
++            return;
++        }
+         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+         if (!this.isRegistered())
