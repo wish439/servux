@@ -24,7 +24,6 @@ import fi.dy.masa.servux.network.IServerPayloadData;
 import fi.dy.masa.servux.network.PacketSplitter;
 import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
 
-@Environment(EnvType.SERVER)
 public abstract class ServuxHudHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
 {
 	private static final ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>()

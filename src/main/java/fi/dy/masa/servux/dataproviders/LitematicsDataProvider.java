@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import javax.annotation.Nullable;
+
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -88,10 +90,10 @@ public class LitematicsDataProvider extends DataProviderBase
 	protected LitematicsDataProvider()
 	{
 		super("litematic_data",
-		      ServuxLitematicaHandler.CHANNEL_ID,
-		      ServuxLitematicaPacket.PROTOCOL_VERSION,
-		      0, Reference.MOD_ID + ".provider.litematic_data",
-		      "Litematics Data provider.");
+				ServuxLitematicaHandler.CHANNEL_ID,
+				ServuxLitematicaPacket.PROTOCOL_VERSION,
+				0, Reference.MOD_ID + ".provider.litematic_data",
+				"Litematics Data provider.");
 
 		this.metadata.putString("name", this.getName());
 		this.metadata.putString("id", this.getNetworkChannel().toString());
@@ -111,6 +113,13 @@ public class LitematicsDataProvider extends DataProviderBase
 	@Override
 	public void registerHandler()
 	{
+		if (FabricLoader.getInstance().isModLoaded("litematica")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			HANDLER.setPlayRegistered(ServuxLitematicaHandler.CHANNEL_ID);
+			this.setRegistered(true);
+			HANDLER.registerPlayReceiver(ServuxLitematicaPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
 		if (!this.isRegistered())
@@ -439,7 +448,7 @@ public class LitematicsDataProvider extends DataProviderBase
 	public void onTaskStatusSync(ServerPlayer player, CompoundData tags)
 	{
 		if (!this.isPlayerRegistered(player) || !this.isEnabled() ||
-			tags == null || tags.isEmpty())
+				tags == null || tags.isEmpty())
 		{
 			return;
 		}
@@ -568,7 +577,7 @@ public class LitematicsDataProvider extends DataProviderBase
 		}
 
 		if ((req.contains("Task", Constants.NBT.TAG_STRING) &&
-			req.getStringOrDefault("Task", "").equals("BulkEntityRequest")))
+				req.getStringOrDefault("Task", "").equals("BulkEntityRequest")))
 		{
 			Servux.debugLog("litematic_data: Sending Bulk NBT Data for ChunkPos {} to player {}", chunkPos.toString(), player.getName().tryCollapseToString());
 			final long timeStart = System.currentTimeMillis();
@@ -585,8 +594,8 @@ public class LitematicsDataProvider extends DataProviderBase
 			for (BlockPos tePos : teSet)
 			{
 				if ((tePos.getX() < chunkPos.getMinBlockX() || tePos.getX() > chunkPos.getMaxBlockX()) ||
-					(tePos.getZ() < chunkPos.getMinBlockZ() || tePos.getZ() > chunkPos.getMaxBlockZ()) ||
-					(tePos.getY() < minY || tePos.getY() > maxY))
+						(tePos.getZ() < chunkPos.getMinBlockZ() || tePos.getZ() > chunkPos.getMaxBlockZ()) ||
+						(tePos.getY() < minY || tePos.getY() > maxY))
 				{
 					continue;
 				}
@@ -635,9 +644,9 @@ public class LitematicsDataProvider extends DataProviderBase
 				final long timeElapsed = System.currentTimeMillis() - timeStart;
 				player.sendSystemMessage(
 						StringUtils.translate("servux.litematics.feedback.bulk_request.acknowledge",
-						                      world.dimension().identifier().toString(), chunkPos.toString(),
-						                      tileList.size(), entityList.size(),
-						                      timeElapsed), false
+								world.dimension().identifier().toString(), chunkPos.toString(),
+								tileList.size(), entityList.size(),
+								timeElapsed), false
 				);
 			}
 		}
@@ -694,8 +703,8 @@ public class LitematicsDataProvider extends DataProviderBase
 	public void handleClientPasteRequestPair(ServerPlayer player, Pair<LitematicaSchematic, CompoundData> schemPair)
 	{
 		if (!this.isPlayerRegistered(player) || !this.isEnabled() ||
-			schemPair == null || schemPair.getLeft() == null ||
-			schemPair.getRight() == null || schemPair.getRight().isEmpty())
+				schemPair == null || schemPair.getLeft() == null ||
+				schemPair.getRight() == null || schemPair.getRight().isEmpty())
 		{
 			return;
 		}

@@ -9,6 +9,11 @@
         "block.MixinHopperBlockEntity",
         "block.MixinRailBlocks",
         "block.MixinStairsBlock",
+        "compat.litematica.LitematicaEntitiesDataStorageMixin",
+        "compat.minihud.MiniHudDataStorageMixin",
+        "compat.minihud.MiniHudEntitiesDataManagerMixin",
+        "compat.minihud.MiniHudHudDataManagerMixin",
+        "compat.tweakeroo.TweakerooEntityDataManagerMixin",
         "debug.MixinSharedConstants",
         "entity.MixinAllayEntity",
         "entity.MixinItemEntity",
@@ -23,7 +28,6 @@
         "server.IMixinServerTickRateManager",
         "server.MixinCommandManager",
         "server.MixinMain",
-        "server.MixinMinecraftDedicatedServer",
         "server.MixinMinecraftServer",
         "server.MixinPlayerManager",
         "world.IMixinLevelTicks",
@@ -34,5 +38,6 @@
     ],
     "injectors": {
         "defaultRequire": 1
-  }
+    },
+    "plugin": "fi.dy.masa.servux.ConditionalMixinCompat"
 }

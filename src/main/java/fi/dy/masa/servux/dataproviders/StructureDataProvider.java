@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -66,10 +67,10 @@ public class StructureDataProvider extends DataProviderBase
 	protected StructureDataProvider()
 	{
 		super("structure_bounding_boxes",
-		      ServuxStructuresHandler.CHANNEL_ID,
-		      ServuxStructuresPacket.PROTOCOL_VERSION,
-		      0, Reference.MOD_ID + ".provider.structure_bounding_boxes",
-		      "Structure Bounding Boxes data for structures such as Witch Huts, Ocean Monuments, Nether Fortresses etc.");
+				ServuxStructuresHandler.CHANNEL_ID,
+				ServuxStructuresPacket.PROTOCOL_VERSION,
+				0, Reference.MOD_ID + ".provider.structure_bounding_boxes",
+				"Structure Bounding Boxes data for structures such as Witch Huts, Ocean Monuments, Nether Fortresses etc.");
 
 		this.metadata.putString("name", this.getName());
 		this.metadata.putString("id", this.getNetworkChannel().toString());
@@ -89,6 +90,13 @@ public class StructureDataProvider extends DataProviderBase
 	@Override
 	public void registerHandler()
 	{
+		if (FabricLoader.getInstance().isModLoaded("minihud")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			HANDLER.setPlayRegistered(ServuxStructuresHandler.CHANNEL_ID);
+			this.setRegistered(true);
+			HANDLER.registerPlayReceiver(ServuxStructuresPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
 		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
 		if (!this.isRegistered())

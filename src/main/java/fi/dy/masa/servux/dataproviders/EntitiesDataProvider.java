@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,8 +30,8 @@ import fi.dy.masa.servux.util.nbt.NbtView;
 
 public class EntitiesDataProvider extends DataProviderBase
 {
-    public static final EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
-    private final static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER = ServuxEntitiesHandler.getInstance();
+	public static final EntitiesDataProvider INSTANCE = new EntitiesDataProvider();
+	private final static ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> HANDLER = ServuxEntitiesHandler.getInstance();
 	private final CompoundData metadata = new CompoundData();
 	private final ServuxIntSetting permissionLevel = new ServuxIntSetting(this, "permission_level", 0, 4, 0);
 	private final ServuxBoolSetting nbtQueryOverride = new ServuxBoolSetting(this, "nbt_query_override", false);
@@ -52,60 +53,67 @@ public class EntitiesDataProvider extends DataProviderBase
 	);
 
 	private final List<UUID> registeredPlayers = new ArrayList<>();
-    private final List<UUID> invalidPlayers = new ArrayList<>();
+	private final List<UUID> invalidPlayers = new ArrayList<>();
 
-    protected EntitiesDataProvider()
-    {
-        super("entity_data",
-                ServuxEntitiesHandler.CHANNEL_ID,
-                ServuxEntitiesPacket.PROTOCOL_VERSION,
-                0, Reference.MOD_ID+ ".provider.entity_data",
-                "Entity Data provider for Client Side mods.");
+	protected EntitiesDataProvider()
+	{
+		super("entity_data",
+				ServuxEntitiesHandler.CHANNEL_ID,
+				ServuxEntitiesPacket.PROTOCOL_VERSION,
+				0, Reference.MOD_ID+ ".provider.entity_data",
+				"Entity Data provider for Client Side mods.");
 
-        this.metadata.putString("name", this.getName());
-        this.metadata.putString("id", this.getNetworkChannel().toString());
-        this.metadata.putInt("version", this.getProtocolVersion());
-        this.metadata.putString("servux", Reference.MOD_STRING);
-    }
+		this.metadata.putString("name", this.getName());
+		this.metadata.putString("id", this.getNetworkChannel().toString());
+		this.metadata.putInt("version", this.getProtocolVersion());
+		this.metadata.putString("servux", Reference.MOD_STRING);
+	}
 
-    @Override
-    public List<IServuxSetting<?>> getSettings()
-    {
-        return settings;
-    }
+	@Override
+	public List<IServuxSetting<?>> getSettings()
+	{
+		return settings;
+	}
 
-    @Override
-    public void registerHandler()
-    {
-        ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+	@Override
+	public void registerHandler()
+	{
+		if (FabricLoader.getInstance().isModLoaded("minihud")) {
+			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+			this.setRegistered(true);
+			HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
+			HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
+			return;
+		}
+		ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
 
-        if (!this.isRegistered())
-        {
-            HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
-            this.setRegistered(true);
-        }
+		if (!this.isRegistered())
+		{
+			HANDLER.registerPlayPayload(ServuxEntitiesPacket.Payload.ID, ServuxEntitiesPacket.Payload.CODEC, IPluginServerPlayHandler.BOTH_SERVER);
+			this.setRegistered(true);
+		}
 
-        HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
-    }
+		HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
+	}
 
-    @Override
-    public void unregisterHandler()
-    {
-        HANDLER.unregisterPlayReceiver();
-        ServerPlayHandler.getInstance().unregisterServerPlayHandler(HANDLER);
-    }
+	@Override
+	public void unregisterHandler()
+	{
+		HANDLER.unregisterPlayReceiver();
+		ServerPlayHandler.getInstance().unregisterServerPlayHandler(HANDLER);
+	}
 
-    @Override
-    public IPluginServerPlayHandler<?> getPacketHandler()
-    {
-        return HANDLER;
-    }
+	@Override
+	public IPluginServerPlayHandler<?> getPacketHandler()
+	{
+		return HANDLER;
+	}
 
-    @Override
-    public boolean isPlayerRegistered(ServerPlayer player)
-    {
-	    return this.registeredPlayers.contains(player.getUUID()) && !this.isPlayerInvalid(player);
-    }
+	@Override
+	public boolean isPlayerRegistered(ServerPlayer player)
+	{
+		return this.registeredPlayers.contains(player.getUUID()) && !this.isPlayerInvalid(player);
+	}
 
 	@Override
 	public void register(ServerPlayer player, CompoundData tags)
@@ -163,12 +171,12 @@ public class EntitiesDataProvider extends DataProviderBase
 	}
 
 	@Override
-    public void onPacketFailure(ServerPlayer player)
-    {
-	    UUID uuid = player.getUUID();
-        this.setPlayerInvalid(player);
-	    this.registeredPlayers.remove(uuid);
-    }
+	public void onPacketFailure(ServerPlayer player)
+	{
+		UUID uuid = player.getUUID();
+		this.setPlayerInvalid(player);
+		this.registeredPlayers.remove(uuid);
+	}
 
 	@Override
 	public void removePlayer(ServerPlayer player)
@@ -179,38 +187,38 @@ public class EntitiesDataProvider extends DataProviderBase
 		HANDLER.resetFailures(this.getNetworkChannel(), player);
 	}
 
-    private void setPlayerInvalid(ServerPlayer player)
-    {
-	    UUID uuid = player.getUUID();
+	private void setPlayerInvalid(ServerPlayer player)
+	{
+		UUID uuid = player.getUUID();
 
-        if (!this.invalidPlayers.contains(uuid))
-        {
-            this.invalidPlayers.add(uuid);
-        }
-    }
+		if (!this.invalidPlayers.contains(uuid))
+		{
+			this.invalidPlayers.add(uuid);
+		}
+	}
 
-    private boolean isPlayerInvalid(ServerPlayer player)
-    {
-        return this.invalidPlayers.contains(player.getUUID());
-    }
+	private boolean isPlayerInvalid(ServerPlayer player)
+	{
+		return this.invalidPlayers.contains(player.getUUID());
+	}
 
-    private void removeInvalidPlayer(ServerPlayer player)
-    {
-        this.invalidPlayers.remove(player.getUUID());
-    }
+	private void removeInvalidPlayer(ServerPlayer player)
+	{
+		this.invalidPlayers.remove(player.getUUID());
+	}
 
-    public void onBlockEntityRequest(ServerPlayer player, BlockPos pos, CompoundData tags)
-    {
-	    if (!this.isPlayerRegistered(player) || !this.isEnabled())
-	    {
-		    return;
-	    }
+	public void onBlockEntityRequest(ServerPlayer player, BlockPos pos, CompoundData tags)
+	{
+		if (!this.isPlayerRegistered(player) || !this.isEnabled())
+		{
+			return;
+		}
 
-	    if (!this.hasPermission(player))
-	    {
-		    Servux.debugLog("entity_data: Denying onBlockEntityRequest from player {}, Insufficient Permissions.", player.getName().getString());
-		    return;
-	    }
+		if (!this.hasPermission(player))
+		{
+			Servux.debugLog("entity_data: Denying onBlockEntityRequest from player {}, Insufficient Permissions.", player.getName().getString());
+			return;
+		}
 
 		//Servux.LOGGER.warn("onBlockEntityRequest(): from player {}", player.getName().getLiteralString());
 		BlockEntity be = player.level().getBlockEntity(pos);
@@ -220,14 +228,14 @@ public class EntitiesDataProvider extends DataProviderBase
 			CompoundData nbt = DataConverterNbt.fromVanillaCompound(be.saveWithFullMetadata(player.registryAccess()));
 			HANDLER.encodeServerData(player, ServuxEntitiesPacket.SimpleBlockResponse(pos, nbt));
 		}
-    }
+	}
 
-    public void onEntityRequest(ServerPlayer player, int entityId, CompoundData tags)
-    {
-	    if (!this.isPlayerRegistered(player) || !this.isEnabled())
-	    {
-		    return;
-	    }
+	public void onEntityRequest(ServerPlayer player, int entityId, CompoundData tags)
+	{
+		if (!this.isPlayerRegistered(player) || !this.isEnabled())
+		{
+			return;
+		}
 
 		if (!this.hasPermission(player))
 		{
@@ -266,7 +274,7 @@ public class EntitiesDataProvider extends DataProviderBase
 				HANDLER.encodeServerData(player, ServuxEntitiesPacket.SimpleEntityResponse(entityId, nbt));
 			}
 		}
-    }
+	}
 
     /*
     public void handleBulkClientRequest(ServerPlayer player, CompoundTag tags)
@@ -280,10 +288,10 @@ public class EntitiesDataProvider extends DataProviderBase
     }
      */
 
-    public boolean hasNbtQueryOverride()
-    {
-        return this.isEnabled() && this.nbtQueryOverride.getValue();
-    }
+	public boolean hasNbtQueryOverride()
+	{
+		return this.isEnabled() && this.nbtQueryOverride.getValue();
+	}
 
 	public boolean hasFixAllayGathering()
 	{
@@ -295,15 +303,15 @@ public class EntitiesDataProvider extends DataProviderBase
 	 * @param player ()
 	 * @return ()
 	 */
-    public boolean hasNbtQueryPermission(ServerPlayer player)
-    {
-        if (this.nbtQueryOverride.getValue())
-        {
-            return PermissionsUtil.check(player, this.permNode+".nbt_query_override", this.nbtQueryPermissionLevel.getValue());
-        }
+	public boolean hasNbtQueryPermission(ServerPlayer player)
+	{
+		if (this.nbtQueryOverride.getValue())
+		{
+			return PermissionsUtil.check(player, this.permNode+".nbt_query_override", this.nbtQueryPermissionLevel.getValue());
+		}
 
-        return player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
-    }
+		return player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
+	}
 
 	public boolean hasNbtAllowPlayerInventory()
 	{
@@ -341,8 +349,8 @@ public class EntitiesDataProvider extends DataProviderBase
 	}
 
 	@Override
-    public boolean hasPermission(ServerPlayer player)
-    {
-        return PermissionsUtil.check(player, this.permNode, this.permissionLevel.getValue());
-    }
+	public boolean hasPermission(ServerPlayer player)
+	{
+		return PermissionsUtil.check(player, this.permNode, this.permissionLevel.getValue());
+	}
 }

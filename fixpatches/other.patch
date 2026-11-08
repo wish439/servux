@@ -1,0 +1,387 @@
+Subject: [PATCH] other
+---
+Index: .gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.gitignore b/.gitignore
+--- a/.gitignore	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/.gitignore	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -10,3 +10,7 @@
+ libs/
+ .idea/
+ run/
++
++testMods
++patches
++autofixer
+\ No newline at end of file
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/build.gradle	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -17,6 +17,75 @@
+     maven { url = 'https://jitpack.io'
+ 		content { includeGroupAndSubgroups('com.github') }
+ 	}
++	maven {
++		url = "https://api.modrinth.com/maven"
++	}
++}
++
++import groovy.json.JsonSlurper
++
++String mcVersion = project.findProperty('minecraft_version') ?: "26.3"
++def loader = "fabric"
++
++// 导入必要的类
++
++def getLatestModVersion(String slug, String mcVersion, String loader = "fabric") {
++	// 缓存逻辑保持不变
++	def cacheFile = project.layout.buildDirectory.file("modrinth-cache.properties").get().asFile
++	def props = new Properties()
++	if (cacheFile.exists()) {
++		cacheFile.withInputStream { props.load(it) }
++	}
++	def cacheKey = "${slug}_${mcVersion}_${loader}"
++	def cachedVersion = props.getProperty(cacheKey)
++	if (cachedVersion && false) {
++		project.logger.lifecycle("Using cached version for $slug: $cachedVersion")
++		return cachedVersion
++	}
++
++	// 构建参数 - 注意：game_versions 是 JSON 数组字符串，需要编码
++	def gameVersionsJson = "[\"${mcVersion}\"]"
++	def loadersJson = "[\"${loader}\"]"
++
++	// 对参数值进行 URL 编码
++	def encodedGameVersions = URLEncoder.encode(gameVersionsJson, "UTF-8")
++	def encodedLoaders = URLEncoder.encode(loadersJson, "UTF-8")
++
++	// 拼接 URL
++	def urlStr = "https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodedGameVersions}&loaders=${encodedLoaders}"
++	project.logger.lifecycle("Fetching from: $urlStr")
++
++	try {
++		def connection = new URL(urlStr).openConnection()
++		connection.setRequestProperty("User-Agent", "MyGradleScript/1.0 (contact@example.com)")
++		connection.connect()
++		if (connection.responseCode != 200) {
++			throw new GradleException("API returned ${connection.responseCode} for URL: $urlStr")
++		}
++		def json = new JsonSlurper().parse(connection.inputStream) as List
++		if (json.isEmpty()) {
++			throw new GradleException("No version found for $slug with mc=$mcVersion loader=$loader")
++		}
++
++		// 按版本号排序（Semantic Versioning 比较）
++		def sortedVersions = json.sort { a, b ->
++			def vA = a.version_number.split('\\.')*.toInteger()
++			def vB = b.version_number.split('\\.')*.toInteger()
++			for (int i = 0; i < Math.min(vA.size(), vB.size()); i++) {
++				if (vA[i] != vB[i]) return vB[i] <=> vA[i]
++			}
++			return vB.size() <=> vA.size()
++		}
++
++		def latest = sortedVersions[0].version_number
++		props.setProperty(cacheKey, latest)
++		cacheFile.parentFile.mkdirs()
++		cacheFile.withOutputStream { props.store(it, "Modrinth cache") }
++		project.logger.lifecycle("Resolved $slug -> $latest")
++		return latest
++	} catch (Exception e) {
++		throw new GradleException("Failed to fetch version for $slug (URL: $urlStr)", e)
++	}
+ }
+ 
+ dependencies {
+@@ -27,9 +96,17 @@
+ 
+ 	// Fabric API. This is technically optional, but you probably want it anyway.
+ 	//modCompile "net.fabricmc.fabric-api:fabric-api:" + project.fabric_version
+-	include(modApi(fabricApi.module("fabric-api-base", project.fabric_api_version)))
+-	include(modApi(fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)))
++	modImplementation "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
++	modLocalRuntime "maven.modrinth:minihud:${getLatestModVersion('minihud', mcVersion, loader)}"
++	modImplementation "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
++	modLocalRuntime  "maven.modrinth:tweakeroo:${getLatestModVersion('tweakeroo', mcVersion, loader)}"
++	modImplementation "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
++	modLocalRuntime  "maven.modrinth:malilib:${getLatestModVersion('malilib', mcVersion, loader)}"
++	modImplementation "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
++	modLocalRuntime  "maven.modrinth:litematica:${getLatestModVersion('litematica', mcVersion, loader)}"
+ 
++	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
++	include api("me.fallenbreath:conditional-mixin-fabric:${project.conditional_mixin_version}")
+ 	// Lucko Permissions API
+ 	modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+ //	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
+Index: gradle.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/gradle.properties b/gradle.properties
+--- a/gradle.properties	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/gradle.properties	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -20,3 +20,5 @@
+ 
+ # Luck Permissions API (https://github.com/lucko/fabric-permissions-api)
+ fabric_permissions_api_version = 0.6.1
++
++conditional_mixin_version=0.6.4
+Index: src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java b/src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java
+new file mode 100644
+--- /dev/null	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
++++ b/src/main/java/fi/dy/masa/servux/ConditionalMixinCompat.java	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -0,0 +1,22 @@
++package fi.dy.masa.servux;
++
++import me.fallenbreath.conditionalmixin.api.mixin.RestrictiveMixinConfigPlugin;
++
++import java.util.List;
++import java.util.Set;
++
++public class ConditionalMixinCompat extends RestrictiveMixinConfigPlugin {
++    @Override
++    public String getRefMapperConfig() {
++        return null;
++    }
++
++    @Override
++    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {
++    }
++
++    @Override
++    public List<String> getMixins() {
++        return List.of();
++    }
++}
+\ No newline at end of file
+Index: src/main/java/fi/dy/masa/servux/EventRegistry.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/EventRegistry.java b/src/main/java/fi/dy/masa/servux/EventRegistry.java
+new file mode 100644
+--- /dev/null	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
++++ b/src/main/java/fi/dy/masa/servux/EventRegistry.java	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -0,0 +1,12 @@
++package fi.dy.masa.servux;
++
++import fi.dy.masa.servux.event.ServerInitHandler;
++import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
++
++public class EventRegistry {
++    public static void registerEvents() {
++        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
++            ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
++        });
++    }
++}
+\ No newline at end of file
+Index: src/main/java/fi/dy/masa/servux/Servux.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/Servux.java b/src/main/java/fi/dy/masa/servux/Servux.java
+--- a/src/main/java/fi/dy/masa/servux/Servux.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/src/main/java/fi/dy/masa/servux/Servux.java	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -1,6 +1,7 @@
+ package fi.dy.masa.servux;
+ 
+ import net.fabricmc.api.ModInitializer;
++import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ import fi.dy.masa.servux.commands.CommandProvider;
+@@ -19,8 +20,11 @@
+     public void onInitialize()
+     {
+         if (Reference.DEBUG_MODE) { ANSI_LOGGER.debug("DEBUG_MODE: Active"); }
++        EventRegistry.registerEvents();
+         ServerInitHandler.getInstance().registerServerInitHandler(new ServuxInitHandler());
+-        CommandProvider.getInstance().registerCommand(new ServuxCommand());
++        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
++            new ServuxCommand().register(dispatcher, registryAccess, environment);
++        });
+         // Command Manager gets called before the Init Manager onServerInit()
+     }
+ 
+Index: src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java b/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java
+--- a/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/src/main/java/fi/dy/masa/servux/dataproviders/EntitiesDataProvider.java	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -4,6 +4,7 @@
+ import java.util.List;
+ import java.util.UUID;
+ 
++import net.fabricmc.loader.api.FabricLoader;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -77,6 +78,13 @@
+     @Override
+     public void registerHandler()
+     {
++		if (FabricLoader.getInstance().isModLoaded("minihud")) {
++			ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
++			this.setRegistered(true);
++			HANDLER.setPlayRegistered(ServuxEntitiesHandler.CHANNEL_ID);
++			HANDLER.registerPlayReceiver(ServuxEntitiesPacket.Payload.ID, HANDLER::receivePlayPayload);
++			return;
++		}
+         ServerPlayHandler.getInstance().registerServerPlayHandler(HANDLER);
+ 
+         if (!this.isRegistered())
+Index: src/main/resources/fabric.mod.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+--- a/src/main/resources/fabric.mod.json	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/src/main/resources/fabric.mod.json	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -20,7 +20,7 @@
+     "license": "LGPLv3",
+     "icon": "assets/servux/icon.png",
+ 
+-	"environment": "server",
++	"environment": "*",
+ 	"entrypoints": {
+ 		"main": [
+ 			"fi.dy.masa.servux.Servux"
+Index: src/main/resources/mixins.servux.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/mixins.servux.json b/src/main/resources/mixins.servux.json
+--- a/src/main/resources/mixins.servux.json	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ b/src/main/resources/mixins.servux.json	(revision a8b318268a86a5f8287ffb0e35271512bf9b2f82)
+@@ -1,37 +1,41 @@
+ {
+-    "required": true,
+-    "package": "fi.dy.masa.servux.mixin",
+-    "compatibilityLevel": "JAVA_21",
+-    "minVersion": "0.8",
+-    "mixins": [
+-        "server.MixinMain",
+-        "block.MixinBlock_UpdateSuppression",
+-        "block.MixinChestBlock",
+-        "block.MixinHopperBlockEntity",
+-        "block.MixinRailBlocks",
+-        "block.MixinStairsBlock",
+-        "debug.MixinSharedConstants",
+-        "entity.MixinAllayEntity",
+-        "entity.MixinItemEntity",
+-        "entity.MixinMobEntity",
+-        "item.MixinBlockItem_EasyPlace",
+-        "item.MixinItemStack",
+-        "nbt.IMixinTagValueInput",
+-        "nbt.IMixinTagValueOutput",
+-        "network.MixinServerPlayNetworkHandler_EasyPlace",
+-        "network.MixinServerPlayNetworkHandler_QueryNbt",
+-        "server.IMixinServerTickRateManager",
+-        "server.MixinCommandManager",
+-        "server.MixinMinecraftDedicatedServer",
+-        "server.MixinMinecraftServer",
+-        "server.MixinPlayerManager",
+-        "world.IMixinLevelTicks",
+-        "world.MixinServerChunkLoadingManager",
+-        "world.MixinServerWorld",
+-        "world.MixinWorld_UpdateSuppression",
+-        "world.MixinWorldChunk_UpdateSuppression"
+-    ],
+-    "injectors": {
+-        "defaultRequire": 1
++  "required": true,
++  "package": "fi.dy.masa.servux.mixin",
++  "compatibilityLevel": "JAVA_21",
++  "minVersion": "0.8",
++  "mixins": [
++    "block.MixinBlock_UpdateSuppression",
++    "block.MixinChestBlock",
++    "block.MixinHopperBlockEntity",
++    "block.MixinRailBlocks",
++    "block.MixinStairsBlock",
++    "compat.litematica.LitematicaEntitiesDataStorageMixin",
++    "compat.minihud.MiniHudDataStorageMixin",
++    "compat.minihud.MiniHudEntitiesDataManagerMixin",
++    "compat.minihud.MiniHudHudDataManagerMixin",
++    "compat.tweakeroo.TweakerooEntityDataManagerMixin",
++    "debug.MixinSharedConstants",
++    "entity.MixinAllayEntity",
++    "entity.MixinItemEntity",
++    "entity.MixinMobEntity",
++    "item.MixinBlockItem_EasyPlace",
++    "item.MixinItemStack",
++    "nbt.IMixinTagValueInput",
++    "nbt.IMixinTagValueOutput",
++    "network.MixinServerPlayNetworkHandler_EasyPlace",
++    "network.MixinServerPlayNetworkHandler_QueryNbt",
++    "server.IMixinServerTickRateManager",
++    "server.MixinCommandManager",
++    "server.MixinMain",
++    "server.MixinMinecraftServer",
++    "server.MixinPlayerManager",
++    "world.IMixinLevelTicks",
++    "world.MixinServerChunkLoadingManager",
++    "world.MixinServerWorld",
++    "world.MixinWorld_UpdateSuppression",
++    "world.MixinWorldChunk_UpdateSuppression"
++  ],
++  "injectors": {
++    "defaultRequire": 1
+   }
+ }
+Index: src/main/java/fi/dy/masa/servux/mixin/server/MixinMinecraftDedicatedServer.java
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/mixin/server/MixinMinecraftDedicatedServer.java b/src/main/java/fi/dy/masa/servux/mixin/server/MixinMinecraftDedicatedServer.java
+deleted file mode 100644
+--- a/src/main/java/fi/dy/masa/servux/mixin/server/MixinMinecraftDedicatedServer.java	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
++++ /dev/null	(revision ddb97d800ec1471d0708ee6c354bdfe5e0e6ac81)
+@@ -1,27 +0,0 @@
+-package fi.dy.masa.servux.mixin.server;
+-
+-import com.mojang.datafixers.DataFixer;
+-import fi.dy.masa.servux.event.ServerInitHandler;
+-import net.minecraft.server.Services;
+-import net.minecraft.server.WorldStem;
+-import net.minecraft.server.dedicated.DedicatedServer;
+-import net.minecraft.server.dedicated.DedicatedServerSettings;
+-import net.minecraft.server.packs.repository.PackRepository;
+-import net.minecraft.world.level.storage.LevelStorageSource;
+-import org.spongepowered.asm.mixin.Mixin;
+-import org.spongepowered.asm.mixin.injection.At;
+-import org.spongepowered.asm.mixin.injection.Inject;
+-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+-
+-@Mixin(DedicatedServer.class)
+-public class MixinMinecraftDedicatedServer
+-{
+-    @Inject(method = "<init>", at = @At("TAIL"))
+-    private void servux_DedicatedServerInit(Thread serverThread, LevelStorageSource.LevelStorageAccess session,
+-											PackRepository dataPackManager, WorldStem saveLoader,
+-											DedicatedServerSettings propertiesLoader, DataFixer dataFixer,
+-											Services apiServices, CallbackInfo ci)
+-    {
+-        ((ServerInitHandler) ServerInitHandler.getInstance()).onServerInit();
+-    }
+-}

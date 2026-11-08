@@ -1,0 +1,82 @@
+Subject: [PATCH] remove environment annotations.
+---
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java	(revision 99fc70ed14cb66407d09e7c47034e78a616c6fdd)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxEntitiesHandler.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
+@@ -21,7 +21,6 @@
+ import fi.dy.masa.servux.network.IPluginServerPlayHandler;
+ import fi.dy.masa.servux.network.IServerPayloadData;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxEntitiesHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxEntitiesHandler<ServuxEntitiesPacket.Payload> INSTANCE = new ServuxEntitiesHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java	(revision 99fc70ed14cb66407d09e7c47034e78a616c6fdd)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxHudHandler.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
+@@ -24,7 +24,6 @@
+ import fi.dy.masa.servux.network.PacketSplitter;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxHudHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxHudHandler<ServuxHudPacket.Payload> INSTANCE = new ServuxHudHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java	(revision 99fc70ed14cb66407d09e7c47034e78a616c6fdd)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxLitematicaHandler.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
+@@ -29,7 +29,6 @@
+ import fi.dy.masa.servux.util.data.tag.CompoundData;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxLitematicaHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE = new ServuxLitematicaHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java	(revision 99fc70ed14cb66407d09e7c47034e78a616c6fdd)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxStructuresHandler.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
+@@ -24,7 +24,6 @@
+ import fi.dy.masa.servux.network.PacketSplitter;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxStructuresHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxStructuresHandler<ServuxStructuresPacket.Payload> INSTANCE = new ServuxStructuresHandler<>()
+Index: src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java b/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java
+--- a/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java	(revision 99fc70ed14cb66407d09e7c47034e78a616c6fdd)
++++ b/src/main/java/fi/dy/masa/servux/network/packet/ServuxTweaksHandler.java	(revision 3f2db30d486a06b157c6908ff7f3575b29fe0483)
+@@ -24,7 +24,6 @@
+ import fi.dy.masa.servux.network.PacketSplitter;
+ import fi.dy.masa.servux.util.data.tag.util.DataByteBufUtils;
+ 
+-@Environment(EnvType.SERVER)
+ public abstract class ServuxTweaksHandler<T extends CustomPacketPayload> implements IPluginServerPlayHandler<T>
+ {
+ 	private static final ServuxTweaksHandler<ServuxTweaksPacket.Payload> INSTANCE = new ServuxTweaksHandler<>()
